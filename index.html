@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Light)</title>
+  <title>MET CSV Dashboard (Light + Artist)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -59,7 +59,7 @@
       <aside class="card" style="position:sticky; top:76px; height:fit-content;">
         <div style="display:grid; gap:10px;">
           <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Search (title / department / culture / classification)</div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Search (title / department / culture / classification / artist / nationality)</div>
             <input id="q" type="text" placeholder="Type to filter…" />
           </div>
           <div>
@@ -101,11 +101,12 @@
               <thead>
                 <tr>
                   <th>Title</th>
+                  <th>Artist</th>
+                  <th>Nationality</th>
                   <th>Department</th>
                   <th>Classification</th>
                   <th>Begin</th>
                   <th>End</th>
-                  <th>Culture</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -130,8 +131,16 @@
     const count = el('count'), exportBtn = el('exportBtn'), clearBtn = el('clearBtn');
 
     const EXPECTED = {
-      title: 'title', department: 'department', classification: 'classification', culture: 'culture',
-      begin: 'object_begin_date', end: 'object_end_date'
+      title: 'title',
+      department: 'department',
+      classification: 'classification',
+      culture: 'culture',
+      begin: 'object_begin_date',
+      end: 'object_end_date',
+      artist: 'artist_display_name',
+      nationality: 'artist_nationality',
+      artist_begin: 'artist_begin_date',
+      artist_end: 'artist_end_date'
     };
 
     fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
@@ -160,7 +169,8 @@
             if (!res.data || !res.data.length) { status.textContent = 'No rows found.'; return; }
             const cols = res.meta && res.meta.fields ? res.meta.fields.map(c => c.trim()) : Object.keys(res.data[0]);
             const mapping = buildHeaderMapping(cols);
-            if (!mapping.ok) { errors.textContent = 'Missing expected columns: ' + mapping.missing.join(', '); }
+            const missing = Object.keys(EXPECTED).filter(k => !(EXPECTED[k] in mapping.map));
+            if (missing.length) { /* don't block; just note */ console.warn('Missing columns:', missing); }
             state.rows = res.data.map(r => normalizeRow(r, mapping));
             state.columns = cols;
             status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns`;
@@ -173,16 +183,24 @@
 
     function buildHeaderMapping(cols) {
       const map = {}; cols.forEach(c => map[c.toLowerCase()] = c);
-      const need = [EXPECTED.title, EXPECTED.department, EXPECTED.classification, EXPECTED.culture, EXPECTED.begin, EXPECTED.end];
-      const missing = need.filter(n => !(n in map));
-      return { ok: missing.length === 0, missing, map };
+      return { map };
     }
 
     function normalizeRow(r, mapping) {
       const low = {}; for (const k in r) if (Object.prototype.hasOwnProperty.call(r,k)) low[k.toLowerCase()] = r[k];
+      // Canonicalized keys for our UI
       return {
-        title: val(low[EXPECTED.title]), department: val(low[EXPECTED.department]), classification: val(low[EXPECTED.classification]), culture: val(low[EXPECTED.culture]),
-        object_begin_date: num(low[EXPECTED.begin]), object_end_date: num(low[EXPECTED.end]),
+        title: val(low[EXPECTED.title]),
+        department: val(low[EXPECTED.department]),
+        classification: val(low[EXPECTED.classification]),
+        culture: val(low[EXPECTED.culture]),
+        object_begin_date: num(low[EXPECTED.begin]),
+        object_end_date: num(low[EXPECTED.end]),
+        artist_display_name: val(low[EXPECTED.artist]),
+        artist_nationality: val(low[EXPECTED.nationality]),
+        artist_begin_date: num(low[EXPECTED.artist_begin]),
+        artist_end_date: num(low[EXPECTED.artist_end]),
+        // keep all original fields (lowercased) so export keeps full data
         ...low
       };
     }
@@ -192,8 +210,14 @@
       const ymin = +yearMin.value, ymax = +yearMax.value;
       const filtered = [];
       for (const r of state.rows) {
-        const t = val(r['title']).toLowerCase(), d = val(r['department']).toLowerCase(), c = val(r['culture']).toLowerCase(), cl = val(r['classification']).toLowerCase();
-        if (query && !(t.includes(query) || d.includes(query) || c.includes(query) || cl.includes(query))) continue;
+        const t = val(r['title']).toLowerCase();
+        const d = val(r['department']).toLowerCase();
+        const c = val(r['culture']).toLowerCase();
+        const cl = val(r['classification']).toLowerCase();
+        const a = val(r['artist_display_name']).toLowerCase();
+        const n = val(r['artist_nationality']).toLowerCase();
+        if (query && !(t.includes(query) || d.includes(query) || c.includes(query) || cl.includes(query) || a.includes(query) || n.includes(query))) continue;
+
         const b = num(r['object_begin_date']), e = num(r['object_end_date']);
         if (Number.isFinite(b) || Number.isFinite(e)) { const lo = Number.isFinite(b) ? b : e, hi = Number.isFinite(e) ? e : b; if (!(lo <= ymax && hi >= ymin)) continue; }
         filtered.push(r);
@@ -210,11 +234,12 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${escapeHTML(val(r['title']))}</td>
+          <td>${escapeHTML(val(r['artist_display_name']))}</td>
+          <td>${escapeHTML(val(r['artist_nationality']))}</td>
           <td><span class="pill">${escapeHTML(val(r['department']))}</span></td>
           <td>${escapeHTML(val(r['classification']))}</td>
           <td>${escapeHTML(num(r['object_begin_date']))}</td>
           <td>${escapeHTML(num(r['object_end_date']))}</td>
-          <td>${escapeHTML(val(r['culture']))}</td>
         `;
         tbody.appendChild(tr);
       }
