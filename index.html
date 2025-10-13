@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MET CSV Dashboard (Minimal)</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root { --bg:#0b1020; --card:#131a2a; --muted:#7e8aa4; --text:#e7ecf6; --accent:#6aa8ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
+    header { position: sticky; top:0; background: rgba(11,16,32,0.8); backdrop-filter: blur(6px); border-bottom: 1px solid #1e2943; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 1000px) { .row { grid-template-columns: 280px 1fr; } }
+    .card { background: var(--card); border: 1px solid #1e2943; border-radius: 14px; padding: 12px; }
+    .muted { color: var(--muted); }
+    input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a395f; background:#0f1526; color: var(--text); }
+    input[type="range"] { width: 100%; }
+    .btn { cursor: pointer; background: #182444; color: var(--text); border: 1px solid #2a395f; padding: 8px 12px; border-radius: 10px; }
+    .btn:hover { background: #21335e; }
+    .dropzone { border: 1px dashed #2a395f; border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #223055; vertical-align: top; }
+    th { text-align: left; color: var(--muted); font-weight: 600; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#0f1b36; border:1px solid #223055; margin-right:6px; color:#cfe0ff; }
+    .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0 24px; }
+    canvas { width: 100% !important; height: 320px !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div style="display:flex; align-items:center; gap:12px; justify-content:space-between;">
+        <div>
+          <div style="font-weight:700;">MET CSV Dashboard</div>
+          <div class="muted" style="font-size:12px;">Minimal, client-only. Load your <code>met_top20k.csv</code> to start.</div>
+        </div>
+        <div>
+          <input id="fileInput" type="file" accept=".csv,text/csv" class="btn" />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="row">
+      <!-- Filters -->
+      <aside class="card" style="position:sticky; top:76px; height:fit-content;">
+        <div style="display:grid; gap:10px;">
+          <div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Search (title / department / culture / classification)</div>
+            <input id="q" type="text" placeholder="Type to filter…" />
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Year range</div>
+            <div style="display:grid; gap:6px;">
+              <input id="yearMin" type="range" min="-600" max="2025" value="-600" />
+              <input id="yearMax" type="range" min="-600" max="2025" value="2025" />
+              <div class="muted"><span id="yearMinVal">-600</span> → <span id="yearMaxVal">2025</span></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="clearBtn" class="btn">Clear</button>
+            <button id="exportBtn" class="btn">Export filtered CSV</button>
+          </div>
+          <div id="status" class="muted" style="font-size:12px;">No file loaded.</div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <section style="display:grid; gap:16px;">
+        <div class="card">
+          <div style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
+            <div>
+              <div style="font-weight:600;">Objects by Department</div>
+              <div class="muted" style="font-size:12px;">Top 15 departments in the filtered set</div>
+            </div>
+            <div class="muted" style="font-size:12px;"><span id="count">0</span> results</div>
+          </div>
+          <div style="margin-top:8px;">
+            <canvas id="deptChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:600; margin-bottom:6px;">Results (first 50)</div>
+          <div style="overflow:auto;">
+            <table id="table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Department</th>
+                  <th>Classification</th>
+                  <th>Begin</th>
+                  <th>End</th>
+                  <th>Culture</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">Client-only • CSV stays on your machine • Built with Papa Parse + Chart.js</div>
+  </main>
+
+  <!-- Libraries from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <script>
+    const state = {
+      rows: [],
+      filtered: [],
+      columns: [],
+      chart: null
+    };
+
+    const el = (id) => document.getElementById(id);
+    const fileInput = el('fileInput');
+    const q = el('q');
+    const yearMin = el('yearMin');
+    const yearMax = el('yearMax');
+    const yearMinVal = el('yearMinVal');
+    const yearMaxVal = el('yearMaxVal');
+    const status = el('status');
+    const count = el('count');
+    const exportBtn = el('exportBtn');
+    const clearBtn = el('clearBtn');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      loadCSV(file);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      q.value = '';
+      yearMin.value = '-600'; yearMax.value = '2025';
+      yearMinVal.textContent = '-600'; yearMaxVal.textContent = '2025';
+      if (state.rows.length) { applyFilters(); }
+    });
+
+    q.addEventListener('input', debounce(applyFilters, 150));
+    yearMin.addEventListener('input', () => { 
+      if (+yearMin.value > +yearMax.value) yearMax.value = yearMin.value;
+      yearMinVal.textContent = yearMin.value; yearMaxVal.textContent = yearMax.value;
+      applyFilters();
+    });
+    yearMax.addEventListener('input', () => { 
+      if (+yearMax.value < +yearMin.value) yearMin.value = yearMax.value;
+      yearMinVal.textContent = yearMin.value; yearMaxVal.textContent = yearMax.value;
+      applyFilters();
+    });
+
+    exportBtn.addEventListener('click', () => {
+      if (!state.filtered.length) return;
+      const csv = toCSV(state.filtered, state.columns);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'met_filtered.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    function loadCSV(file) {
+      status.textContent = 'Parsing…';
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        worker: true,
+        complete: (res) => {
+          state.rows = res.data;
+          state.columns = res.meta.fields || Object.keys(state.rows[0] || {});
+          status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns`;
+          applyFilters();
+        },
+        error: (err) => {
+          console.error(err);
+          status.textContent = 'Error parsing CSV: ' + err;
+        }
+      });
+    }
+
+    function applyFilters() {
+      const query = (q.value || '').toLowerCase().trim();
+      const ymin = +yearMin.value, ymax = +yearMax.value;
+
+      const titleKey = 'title';
+      const deptKey = 'department';
+      const cultureKey = 'culture';
+      const classKey = 'classification';
+      const beginKey = 'object_begin_date';
+      const endKey = 'object_end_date';
+
+      const filtered = [];
+      for (const r of state.rows) {
+        const t = (r[titleKey] || '').toString().toLowerCase();
+        const d = (r[deptKey] || '').toString().toLowerCase();
+        const c = (r[cultureKey] || '').toString().toLowerCase();
+        const cl = (r[classKey] || '').toString().toLowerCase();
+        if (query && !(t.includes(query) || d.includes(query) || c.includes(query) || cl.includes(query))) continue;
+
+        const b = num(r[beginKey]); const e = num(r[endKey]);
+        if (Number.isFinite(b) || Number.isFinite(e)) {
+          const lo = Number.isFinite(b) ? b : e;
+          const hi = Number.isFinite(e) ? e : b;
+          if (!(lo <= ymax && hi >= ymin)) continue;
+        }
+        filtered.push(r);
+      }
+      state.filtered = filtered;
+      count.textContent = filtered.length.toLocaleString();
+      renderTable(filtered.slice(0, 50));
+      renderDeptChart(filtered);
+    }
+
+    function num(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function renderTable(rows) {
+      const tbody = document.querySelector('#table tbody');
+      tbody.innerHTML = '';
+      for (const r of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHTML(r['title'] ?? '')}</td>
+          <td><span class="pill">${escapeHTML(r['department'] ?? '')}</span></td>
+          <td>${escapeHTML(r['classification'] ?? '')}</td>
+          <td>${escapeHTML(r['object_begin_date'] ?? '')}</td>
+          <td>${escapeHTML(r['object_end_date'] ?? '')}</td>
+          <td>${escapeHTML(r['culture'] ?? '')}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderDeptChart(rows) {
+      const ctx = document.getElementById('deptChart').getContext('2d');
+      const counts = new Map();
+      for (const r of rows) {
+        const d = r['department'] || '';
+        counts.set(d, (counts.get(d) || 0) + 1);
+      }
+      const sorted = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]).slice(0,15);
+      const labels = sorted.map(x=>x[0]);
+      const data = sorted.map(x=>x[1]);
+
+      if (state.chart) { state.chart.destroy(); }
+      state.chart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Count', data }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { x: { ticks: { color: '#cfe0ff' } }, y: { ticks: { color: '#cfe0ff' } } },
+          plugins: { legend: { labels: { color: '#cfe0ff' } } }
+        }
+      });
+    }
+
+    function toCSV(rows, cols) {
+      const header = cols.join(',');
+      const lines = [header];
+      for (const r of rows) {
+        const line = cols.map(k => csvEscape(r[k]));
+        lines.push(line.join(','));
+      }
+      return lines.join('\n');
+    }
+
+    function csvEscape(v) {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+    }
+
+    function debounce(fn, ms) {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(null, args), ms); };
+    }
+  </script>
+</body>
+</html>
