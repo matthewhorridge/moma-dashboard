@@ -1,560 +1,684 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Typeahead: Multi-Select Chips)</title>
-  <link rel="icon" href="data:," />
-  <style>
-    :root {
-      --bg:#f8fafc;
-      --card:#ffffff;
-      --muted:#64748b;
-      --text:#0f172a;
-      --accent:#2563eb;
-      --accent-2:#06b6d4;
-      --accent-3:#f97316;
-      --accent-4:#22c55e;
-      --bad:#b91c1c;
-      --border:#e5e7eb;
-      --input:#ffffff;
-      --input-border:#cbd5e1;
-      --btn:#eef2ff;
-      --btn-hover:#e0e7ff;
-      --pill-bg:#eef6ff;
-      --pill-border:#c7ddff;
-      --hover:#f1f5f9;
-      --sel:#e0e7ff;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
-    header { position: sticky; top:0; background: rgba(255,255,255,0.9); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
-    .row { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    @media (min-width: 1000px) { .row { grid-template-columns: 320px 1fr; } }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
-    .muted { color: var(--muted); }
-    input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--input-border); background:var(--input); color: var(--text); }
-    input[type="range"] { width: 100%; }
-    .btn { cursor: pointer; background: var(--btn); color: var(--text); border: 1px solid var(--input-border); padding: 8px 12px; border-radius: 10px; }
-    .btn:hover { background: var(--btn-hover); }
-    .pill { display:inline-block; padding: 4px 8px; border-radius: 6px; background: var(--pill-bg); border:1px solid var(--pill-border); color:#0f172a; font-size: 12px; line-height: 1.2; }
-    .stack-col { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { text-align: left; color: var(--muted); font-weight: 600; }
-    .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0 24px; }
-    canvas { width: 100% !important; height: 320px !important; }
-    .err { color: var(--bad); white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-
-    /* Ticked slider wrapper */
-    .slider-block { display:grid; gap:6px; }
-    .ticks-wrap { position: relative; height: 26px; }
-    .ticks-svg { position:absolute; inset:0; width:100%; height:100%; }
-    .tick-line { stroke:#cbd5e1; stroke-width:1; }
-    .tick-dot { fill:#94a3b8; }
-    .tick-label { font-size:10px; fill:#64748b; text-anchor:middle; }
-
-    /* Typeahead */
-    .combo-wrap { position: relative; }
-    .combo { width:100%; padding-right: 64px; }
-    .combo-controls { position:absolute; right:6px; top:6px; display:flex; gap:6px; }
-    .combo-btn { border:1px solid var(--input-border); background:var(--btn); border-radius:8px; padding:6px 8px; cursor:pointer; }
-    .combo-btn:hover { background:var(--btn-hover); }
-    .listbox { position:absolute; z-index:20; background:white; border:1px solid var(--border); border-radius:10px; width:100%; max-height:240px; overflow:auto; box-shadow: 0 10px 30px rgba(2,6,23,0.08); margin-top:6px; }
-    .option { padding:8px 10px; cursor:pointer; }
-    .option:hover { background: var(--hover); }
-    .option[aria-selected="true"] { background: var(--sel); }
-    .chip { display:inline-flex; align-items:center; gap:6px; background:#eef2ff; border:1px solid #c7d2fe; color:#1e293b; padding:4px 8px; border-radius:999px; font-size:12px; }
-    .chip button { all:unset; cursor:pointer; padding:0 4px; }
-    .chips-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MET Dashboard — Sort • Paging • Columns</title>
+<link rel="icon" href="data:," />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f7fb;
+    --bg-accent: radial-gradient(1200px 600px at 80% -10%, rgba(99,102,241,0.12), transparent 60%),
+                 radial-gradient(800px 400px at -10% 20%, rgba(16,185,129,0.10), transparent 60%);
+    --card: #ffffff;
+    --muted: #667085;
+    --text: #0f172a;
+    --ring: 0 0 0 4px rgba(59,130,246,0.20);
+    --border: #e6e8ee;
+    --input: #ffffff;
+    --input-border: #d7dbe3;
+    --btn: linear-gradient(180deg,#f8faff,#eef2ff);
+    --btn-hover: linear-gradient(180deg,#eef2ff,#e0e7ff);
+    --primary: #3b82f6;
+    --chip-bg:#f1f5ff; --chip-border:#c7d2fe; --chip-text:#1e293b;
+    --shadow-sm: 0 1px 2px rgba(16,24,40,0.05);
+    --shadow-md: 0 8px 24px rgba(2,6,23,0.08);
+    --shadow-lg: 0 20px 40px rgba(2,6,23,0.12);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; color:var(--text);
+    background: var(--bg); background-image: var(--bg-accent);
+    font: 14px/1.6 "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  header { position: sticky; top:0; z-index:50; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 16px 20px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(180deg,#3b82f6,#6366f1); box-shadow: var(--shadow-sm); display:grid; place-items:center; color:#fff; font-weight:700; }
+  .title { font-weight:700; font-size:16px; }
+  .subtitle { color:var(--muted); font-size:12px; }
+  .row { display:grid; grid-template-columns: 1fr; gap: 18px; margin-top: 16px; }
+  @media (min-width: 1080px) { .row { grid-template-columns: 340px 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: var(--shadow-md); }
+  .card h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+  .muted { color: var(--muted); }
+  .input { width:100%; padding: 12px 12px 12px 40px; border-radius: 12px; border:1px solid var(--input-border); background:var(--input); transition: box-shadow .15s ease, border-color .15s ease; }
+  .input:focus { outline:none; border-color: #93c5fd; box-shadow: var(--ring); }
+  .field { position:relative; }
+  .field svg { position:absolute; left:12px; top:50%; transform: translateY(-50%); opacity:.6; }
+  input[type="range"] { width:100%; }
+  .btn { cursor:pointer; background: var(--btn); border:1px solid var(--input-border); color:#0f172a; padding: 10px 14px; border-radius: 12px; font-weight:600; box-shadow: var(--shadow-sm); transition: transform .05s ease, box-shadow .15s ease, background .2s ease; }
+  .btn:hover { background: var(--btn-hover); box-shadow: var(--shadow-md); }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: linear-gradient(180deg, #60a5fa, #3b82f6); border-color: rgba(59,130,246,0.4); color: #fff; }
+  .btn-primary:hover { background: linear-gradient(180deg, #60a5fa, #2563eb); }
+  .pill { display:inline-block; padding: 5px 9px; border-radius: 8px; background: var(--chip-bg); border:1px solid var(--chip-border); color:var(--chip-text); font-size: 12px; line-height: 1.2; }
+  .chips-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; background:#eef2ff; border:1px solid #c7d2fe; color:#1e293b; padding:6px 10px; border-radius: 999px; font-size:12px; box-shadow: var(--shadow-sm); }
+  .chip button { all:unset; cursor:pointer; padding:0 4px; opacity:.7; }
+  .chip button:hover { opacity:1; }
+  table { width:100%; border-collapse: collapse; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { text-align:left; color:#475569; font-weight:700; user-select:none; cursor:pointer; }
+  th .sort { margin-left:6px; opacity:.7; }
+  tbody tr:hover { background: #f8fafc; }
+  canvas { width: 100% !important; height: 340px !important; }
+  .err { color:#b91c1c; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .slider-block { display:grid; gap:6px; }
+  .ticks-wrap { position: relative; height: 28px; }
+  .ticks-svg { position:absolute; inset:0; width:100%; height:100%; }
+  .tick-line { stroke:#d0d5dd; stroke-width:1; }
+  .tick-dot { fill:#9aa4b2; }
+  .tick-label { font-size:10px; fill:#667085; text-anchor:middle; }
+  .listbox { position:relative; margin-top:8px; background:#fff; border:1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); max-height:260px; overflow:auto; padding:6px 0; }
+  .option { padding:8px 10px; cursor:pointer; }
+  .option:hover { background:#f8fafc; }
+  .option[aria-selected="true"] { background:#eef2ff; }
+  .controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .select { padding:8px 10px; border-radius:10px; border:1px solid var(--input-border); background:#fff; }
+  .colpick { position:relative; display:inline-block; }
+  .colpanel { position:absolute; right:0; top:calc(100% + 8px); background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow: var(--shadow-lg); padding:10px; min-width:220px; z-index:10; }
+  .colpanel h4 { margin: 0 0 8px; font-size:12px; color:#475569; }
+  .colpanel label { display:flex; align-items:center; gap:8px; padding:6px 4px; border-radius:8px; cursor:pointer; }
+  .colpanel label:hover { background:#f8fafc; }
+</style>
 </head>
 <body>
-  <header>
-    <div class="wrap" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+<header>
+  <div class="wrap" style="display:flex; align-items:center; justify-content:space-between; gap:14px;">
+    <div class="brand">
+      <div class="logo">M</div>
       <div>
-        <div style="font-weight:700;">MET CSV Dashboard</div>
-        <div class="muted" style="font-size:12px;">Load <code>met_top20k.csv</code> — Client-only, no backend</div>
-      </div>
-      <div>
-        <input id="fileInput" type="file" accept=".csv,text/csv" class="btn" />
+        <div class="title">MET Dashboard</div>
+        <div class="subtitle">Client-only • Load <code>met_top20k.csv</code></div>
       </div>
     </div>
-  </header>
+    <div><input id="fileInput" type="file" accept=".csv,text/csv" class="btn" /></div>
+  </div>
+</header>
 
-  <main class="wrap">
-    <div class="row">
-      <!-- Filters -->
-      <aside class="card" style="position:sticky; top:76px; height:fit-content;">
-        <div style="display:grid; gap:12px;">
-          <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Search (title / department / classification / culture / artist / nationality / tags)</div>
-            <input id="q" type="text" placeholder="Type to filter…" />
-          </div>
-
-          <!-- Artist typeahead (multi) -->
-          <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Artist (multi)</div>
-            <div class="combo-wrap">
-              <input id="artistInput" class="combo" type="text" placeholder="Start typing an artist…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-              <div class="combo-controls">
-                <button id="artistClear" class="combo-btn" title="Clear selection">✕</button>
-                <button id="artistToggle" class="combo-btn" title="Show suggestions">▾</button>
-              </div>
-              <div id="artistList" class="listbox" role="listbox" hidden></div>
-            </div>
-            <div id="artistChips" class="chips-row" style="display:none;"></div>
-          </div>
-
-          <!-- Classification typeahead (multi) -->
-          <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Classification (multi)</div>
-            <div class="combo-wrap">
-              <input id="classInput" class="combo" type="text" placeholder="Type classification…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-              <div class="combo-controls">
-                <button id="classClear" class="combo-btn" title="Clear selection">✕</button>
-                <button id="classToggle" class="combo-btn" title="Show suggestions">▾</button>
-              </div>
-              <div id="classList" class="listbox" role="listbox" hidden></div>
-            </div>
-            <div id="classChips" class="chips-row" style="display:none;"></div>
-          </div>
-
-          <!-- Tags typeahead (multi) -->
-          <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Tags (multi)</div>
-            <div class="combo-wrap">
-              <input id="tagsInput" class="combo" type="text" placeholder="Type a tag…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-              <div class="combo-controls">
-                <button id="tagsClear" class="combo-btn" title="Clear selection">✕</button>
-                <button id="tagsToggle" class="combo-btn" title="Show suggestions">▾</button>
-              </div>
-              <div id="tagsList" class="listbox" role="listbox" hidden></div>
-            </div>
-            <div id="tagsChips" class="chips-row" style="display:none;"></div>
-          </div>
-
-          <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Year range</div>
-            <div class="slider-block">
-              <input id="yearMin" type="range" min="-600" max="2025" value="-600" />
-              <div class="ticks-wrap"><svg id="ticksMin" class="ticks-svg"></svg></div>
-            </div>
-            <div class="slider-block">
-              <input id="yearMax" type="range" min="-600" max="2025" value="2025" />
-              <div class="ticks-wrap"><svg id="ticksMax" class="ticks-svg"></svg></div>
-            </div>
-            <div class="muted"><span id="yearMinVal">-600</span> → <span id="yearMaxVal">2025</span></div>
-          </div>
-
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button id="clearBtn" class="btn">Clear</button>
-            <button id="exportBtn" class="btn">Export filtered CSV</button>
-          </div>
-          <div id="status" class="muted" style="font-size:12px;">No file loaded.</div>
-          <div id="errors" class="err"></div>
-        </div>
-      </aside>
-
-      <!-- Main -->
-      <section style="display:grid; gap:16px;">
-        <div class="card">
-          <div style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
-            <div>
-              <div style="font-weight:600;">Objects by Department</div>
-              <div class="muted" style="font-size:12px;">Top 15 departments in the filtered set</div>
-            </div>
-            <div class="muted" style="font-size:12px;"><span id="count">0</span> results</div>
-          </div>
-          <div style="margin-top:8px;">
-            <canvas id="deptChart"></canvas>
+<main class="wrap">
+  <div class="row">
+    <aside class="card" style="position:sticky; top:92px; height:fit-content;">
+      <div style="display:grid; gap:14px;">
+        <div>
+          <h3>Search</h3>
+          <div class="field">
+            <input id="q" class="input" type="text" placeholder="Title, department, classification, culture, artist, nationality, tags…" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
         </div>
 
-        <div class="card">
-          <div style="font-weight:600; margin-bottom:6px;">Results (first 50)</div>
-          <div style="overflow:auto;">
-            <table id="table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Artist(s)</th>
-                  <th>Nationality</th>
-                  <th>Culture</th>
-                  <th>Department</th>
-                  <th>Classification</th>
-                  <th>Tags</th>
-                  <th>Begin</th>
-                  <th>End</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+        <div>
+          <h3>Artist (multi)</h3>
+          <div class="field">
+            <input id="artistInput" class="input" type="text" placeholder="Type to search artists…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div style="position:absolute; right:8px; top:8px; display:flex; gap:6px;">
+              <button id="artistClear" class="btn" title="Clear">✕</button>
+              <button id="artistToggle" class="btn" title="Show">▾</button>
+            </div>
+          </div>
+          <div id="artistList" class="listbox" role="listbox" hidden></div>
+          <div id="artistChips" class="chips-row" style="display:none;"></div>
+        </div>
+
+        <div>
+          <h3>Classification (multi)</h3>
+          <div class="field">
+            <input id="classInput" class="input" type="text" placeholder="Type to search classification…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div style="position:absolute; right:8px; top:8px; display:flex; gap:6px;">
+              <button id="classClear" class="btn" title="Clear">✕</button>
+              <button id="classToggle" class="btn" title="Show">▾</button>
+            </div>
+          </div>
+          <div id="classList" class="listbox" role="listbox" hidden></div>
+          <div id="classChips" class="chips-row" style="display:none;"></div>
+        </div>
+
+        <div>
+          <h3>Tags (multi)</h3>
+          <div class="field">
+            <input id="tagsInput" class="input" type="text" placeholder="Type to search tags…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div style="position:absolute; right:8px; top:8px; display:flex; gap:6px;">
+              <button id="tagsClear" class="btn" title="Clear">✕</button>
+              <button id="tagsToggle" class="btn" title="Show">▾</button>
+            </div>
+          </div>
+          <div id="tagsList" class="listbox" role="listbox" hidden></div>
+          <div id="tagsChips" class="chips-row" style="display:none;"></div>
+        </div>
+
+        <div>
+          <h3>Year range</h3>
+          <div class="slider-block">
+            <input id="yearMin" type="range" min="-600" max="2025" value="-600" />
+            <div class="ticks-wrap"><svg id="ticksMin" class="ticks-svg"></svg></div>
+          </div>
+          <div class="slider-block">
+            <input id="yearMax" type="range" min="-600" max="2025" value="2025" />
+            <div class="ticks-wrap"><svg id="ticksMax" class="ticks-svg"></svg></div>
+          </div>
+          <div class="muted"><span id="yearMinVal">-600</span> → <span id="yearMaxVal">2025</span></div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="clearBtn" class="btn">Clear</button>
+          <button id="exportBtn" class="btn btn-primary">Export filtered CSV</button>
+        </div>
+        <div id="status" class="muted" style="font-size:12px;">No file loaded.</div>
+        <div id="errors" class="err"></div>
+      </div>
+    </aside>
+
+    <section style="display:grid; gap:18px;">
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
+          <div>
+            <h3 style="margin:0;">Objects by Department</h3>
+            <div class="muted" style="font-size:12px;">Top 15 departments in the filtered set</div>
+          </div>
+          <div class="muted" style="font-size:12px;"><span id="count" style="font-weight:700; color:#111827;">0</span> results</div>
+        </div>
+        <div style="margin-top:8px;">
+          <canvas id="deptChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;">
+          <h3 style="margin:0;">Results</h3>
+          <div class="controls">
+            <label class="muted" style="font-size:12px;">Rows per page
+              <select id="rowsPerPage" class="select">
+                <option>25</option><option selected>50</option><option>100</option><option>200</option>
+              </select>
+            </label>
+            <div class="colpick">
+              <button id="colBtn" class="btn">Columns ▾</button>
+              <div id="colPanel" class="colpanel" hidden>
+                <h4>Toggle columns</h4>
+                <div id="colChecks"></div>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
-    </div>
 
-    <div class="footer">Client-only • CSV stays on your machine • Built with Papa Parse + Chart.js</div>
-  </main>
+        <div style="overflow:auto;">
+          <table id="table">
+            <thead>
+              <tr id="theadRow"></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
 
-  <!-- Libraries from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px;">
+          <div class="muted" style="font-size:12px;">Showing <span id="showingRange">0–0</span> of <span id="totalRows">0</span></div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="prevPage" class="btn">◀ Prev</button>
+            <div class="muted" style="font-size:12px;">Page <span id="pageNum">1</span> / <span id="pageCount">1</span></div>
+            <button id="nextPage" class="btn">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 
-  <script>
-    const state = {
-      rows: [], filtered: [], columns: [], chart: null,
-      artistIndex: [], classIndex: [], tagIndex: [],
-      artistSel: [], classSel: [], tagSel: []
-    };
-    const el = (id) => document.getElementById(id);
-    const fileInput = el('fileInput'), q = el('q'), yearMin = el('yearMin'), yearMax = el('yearMax');
-    const yearMinVal = el('yearMinVal'), yearMaxVal = el('yearMaxVal'), status = el('status'), errors = el('errors');
-    const count = el('count'), exportBtn = el('exportBtn'), clearBtn = el('clearBtn');
+  <div class="wrap" style="padding-bottom:28px;">
+    <div class="muted" style="text-align:center; font-size:12px;">Built with Papa Parse + Chart.js • Client-only</div>
+  </div>
+</main>
 
-    // Typeahead els
-    const artistInput = el('artistInput'), artistList = el('artistList'), artistToggle = el('artistToggle'), artistClear = el('artistClear'), artistChips = el('artistChips');
-    const classInput = el('classInput'), classList = el('classList'), classToggle = el('classToggle'), classClear = el('classClear'), classChips = el('classChips');
-    const tagsInput = el('tagsInput'), tagsList = el('tagsList'), tagsToggle = el('tagsToggle'), tagsClear = el('tagsClear'), tagsChips = el('tagsChips');
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  Chart.defaults.font.family = "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  Chart.defaults.color = "#334155";
+  Chart.defaults.plugins.legend.labels.boxWidth = 14;
 
-    const EXPECTED = {
-      title: 'title',
-      department: 'department',
-      classification: 'classification',
-      culture: 'culture',
-      begin: 'object_begin_date',
-      end: 'object_end_date',
-      artist: 'artist_display_name',
-      nationality: 'artist_nationality',
-      artist_begin: 'artist_begin_date',
-      artist_end: 'artist_end_date',
-      tags: 'tags'
-    };
+  const state = {
+    rows: [], filtered: [], columns: [],
+    artistIndex: [], classIndex: [], tagIndex: [],
+    artistSel: [], classSel: [], tagSel: [],
+    sortKey: 'title', sortDir: 'asc',
+    page: 1, pageSize: 50,
+    colDefs: [
+      { key:'title', label:'Title', visible:true, type:'text' },
+      { key:'artist_display_name', label:'Artist(s)', visible:true, type:'multi' },
+      { key:'artist_nationality', label:'Nationality', visible:true, type:'multi' },
+      { key:'culture', label:'Culture', visible:true, type:'multi' },
+      { key:'department', label:'Department', visible:true, type:'multi' },
+      { key:'classification', label:'Classification', visible:true, type:'multi' },
+      { key:'tags', label:'Tags', visible:true, type:'multi' },
+      { key:'object_begin_date', label:'Begin', visible:true, type:'num' },
+      { key:'object_end_date', label:'End', visible:true, type:'num' },
+    ]
+  };
+  const el = (id) => document.getElementById(id);
 
-    // even ticks
-    const TICK_COUNT = 6;
+  const fileInput = el('fileInput'), q = el('q'), yearMin = el('yearMin'), yearMax = el('yearMax');
+  const yearMinVal = el('yearMinVal'), yearMaxVal = el('yearMaxVal'), status = el('status'), errors = el('errors');
+  const exportBtn = el('exportBtn'), clearBtn = el('clearBtn');
 
-    fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
-    clearBtn.addEventListener('click', () => {
-      q.value=''; yearMin.value='-600'; yearMax.value='2025';
-      yearMinVal.textContent='-600'; yearMaxVal.textContent='2025';
-      setSelections('artist', []); setSelections('class', []); setSelections('tags', []);
-      drawTicks(); if (state.rows.length) applyFilters();
+  const artistInput = el('artistInput'), artistList = el('artistList'), artistToggle = el('artistToggle'), artistClear = el('artistClear'), artistChips = el('artistChips');
+  const classInput = el('classInput'), classList = el('classList'), classToggle = el('classToggle'), classClear = el('classClear'), classChips = el('classChips');
+  const tagsInput = el('tagsInput'), tagsList = el('tagsList'), tagsToggle = el('tagsToggle'), tagsClear = el('tagsClear'), tagsChips = el('tagsChips');
+
+  const theadRow = el('theadRow'), tbody = document.querySelector('#table tbody');
+  const rowsPerPage = el('rowsPerPage'), prevPage = el('prevPage'), nextPage = el('nextPage');
+  const pageNum = el('pageNum'), pageCount = el('pageCount'), showingRange = el('showingRange'), totalRows = el('totalRows');
+  const count = el('count');
+
+  const colBtn = el('colBtn'), colPanel = el('colPanel'), colChecks = el('colChecks');
+
+  const TICK_COUNT = 6;
+
+  fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
+  clearBtn.addEventListener('click', () => {
+    q.value=''; yearMin.value='-600'; yearMax.value='2025';
+    yearMinVal.textContent='-600'; yearMaxVal.textContent='2025';
+    setSelections('artist', []); setSelections('class', []); setSelections('tags', []);
+    state.page = 1; state.sortKey='title'; state.sortDir='asc';
+    drawTicks(); if (state.rows.length) applyFilters();
+  });
+  q.addEventListener('input', debounce(() => { state.page=1; applyFilters(); }, 150));
+  yearMin.addEventListener('input', () => { if (+yearMin.value > +yearMax.value) yearMax.value = yearMin.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; state.page=1; applyFilters(); });
+  yearMax.addEventListener('input', () => { if (+yearMax.value < +yearMin.value) yearMin.value = yearMax.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; state.page=1; applyFilters(); });
+  window.addEventListener('resize', debounce(drawTicks, 150));
+
+  rowsPerPage.addEventListener('change', () => { state.pageSize = +rowsPerPage.value; state.page = 1; renderPaged(); });
+  prevPage.addEventListener('click', () => { if (state.page > 1) { state.page--; renderPaged(); } });
+  nextPage.addEventListener('click', () => { const pc = Math.max(1, Math.ceil(state.filtered.length / state.pageSize)); if (state.page < pc) { state.page++; renderPaged(); } });
+
+  colBtn.addEventListener('click', () => { colPanel.hidden = !colPanel.hidden; });
+  document.addEventListener('click', (e) => { if (!colPanel.contains(e.target) && e.target !== colBtn) colPanel.hidden = true; });
+
+  function renderColumnPicker() {
+    colChecks.innerHTML = '';
+    for (const c of state.colDefs) {
+      const id = 'col_' + c.key;
+      const wrap = document.createElement('label');
+      wrap.innerHTML = `<input id="${id}" type="checkbox" ${c.visible ? 'checked' : ''}/> <span>${c.label}</span>`;
+      colChecks.appendChild(wrap);
+      wrap.querySelector('input').addEventListener('change', (ev) => { c.visible = ev.target.checked; renderTableHeader(); renderPaged(); });
+    }
+  }
+
+  function wireTypeahead(kind, inputEl, listEl, toggleBtn, clearBtn) {
+    toggleBtn.addEventListener('click', () => { inputEl.focus(); showList(kind, inputEl.value); });
+    clearBtn.addEventListener('click', () => { inputEl.value=''; setSelections(kind, []); hideList(kind); state.page=1; applyFilters(); });
+    inputEl.addEventListener('input', () => { showList(kind, inputEl.value); });
+    inputEl.addEventListener('focus', () => { showList(kind, inputEl.value); });
+    inputEl.addEventListener('keydown', (e) => handleListKey(e, kind));
+  }
+  wireTypeahead('artist', artistInput, artistList, artistToggle, artistClear);
+  wireTypeahead('class', classInput, classList, classToggle, classClear);
+  wireTypeahead('tags', tagsInput, tagsList, tagsToggle, tagsClear);
+
+  document.addEventListener('click', (e) => {
+    const inside = (elem) => elem && (elem.contains(e.target) || e.target === elem);
+    if (!inside(artistList) && !inside(artistInput) && e.target !== artistToggle) hideList('artist');
+    if (!inside(classList) && !inside(classInput) && e.target !== classToggle) hideList('class');
+    if (!inside(tagsList) && !inside(tagsInput) && e.target !== tagsToggle) hideList('tags');
+  });
+
+  function handleListKey(e, kind) {
+    const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
+    const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
+    const opts = [...listEl.querySelectorAll('.option')];
+    const cur = opts.findIndex(o => o.getAttribute('aria-selected') === 'true');
+    if (e.key === 'ArrowDown') { e.preventDefault(); const idx = Math.min(cur + 1, opts.length - 1); selectOption(opts, idx); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); const idx = Math.max(cur - 1, 0); selectOption(opts, idx); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const value = cur >= 0 ? opts[cur].dataset.value : inputEl.value.trim();
+      if (value) { addSelection(kind, value); inputEl.value=''; showList(kind, ''); state.page=1; applyFilters(); }
+    } else if (e.key === 'Escape') { hideList(kind); }
+  }
+
+  function selectOption(opts, idx) {
+    opts.forEach(o => o.setAttribute('aria-selected', 'false'));
+    if (idx >= 0 && idx < opts.length) {
+      opts[idx].setAttribute('aria-selected', 'true');
+      opts[idx].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function showList(kind, query) {
+    const ql = (query || '').toLowerCase();
+    const idx = kind === 'artist' ? state.artistIndex : kind === 'class' ? state.classIndex : state.tagIndex;
+    const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
+    const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
+    const items = idx.filter(a => !ql || a.toLowerCase().includes(ql)).slice(0, 60);
+    listEl.innerHTML = items.map((a, i) => `<div class="option" role="option" aria-selected="${i===0?'true':'false'}" data-value="${escapeHTML(a)}">${escapeHTML(a)}</div>`).join('');
+    listEl.hidden = items.length === 0;
+    inputEl.setAttribute('aria-expanded', String(!listEl.hidden));
+    [...listEl.querySelectorAll('.option')].forEach(opt => {
+      opt.addEventListener('mouseenter', () => { [...listEl.querySelectorAll('.option')].forEach(o=>o.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); });
+      opt.addEventListener('click', () => { addSelection(kind, opt.dataset.value); showList(kind, ''); state.page=1; applyFilters(); });
     });
-    q.addEventListener('input', debounce(applyFilters, 150));
-    yearMin.addEventListener('input', () => { if (+yearMin.value > +yearMax.value) yearMax.value = yearMin.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; applyFilters(); });
-    yearMax.addEventListener('input', () => { if (+yearMax.value < +yearMin.value) yearMin.value = yearMax.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; applyFilters(); });
-    window.addEventListener('resize', debounce(drawTicks, 150));
+  }
+  function hideList(kind) {
+    const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
+    const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
+    listEl.hidden = true; inputEl.setAttribute('aria-expanded', 'false');
+  }
 
-    // --- Typeahead wiring helpers
-    function wireTypeahead(kind, inputEl, listEl, toggleBtn, clearBtn) {
-      toggleBtn.addEventListener('click', () => { inputEl.focus(); showList(kind, inputEl.value); });
-      clearBtn.addEventListener('click', () => { inputEl.value=''; setSelections(kind, []); hideList(kind); applyFilters(); });
-      inputEl.addEventListener('input', () => { showList(kind, inputEl.value); });
-      inputEl.addEventListener('focus', () => { showList(kind, inputEl.value); });
-      inputEl.addEventListener('keydown', (e) => handleListKey(e, kind));
+  function setSelections(kind, arr) {
+    const uniq = Array.from(new Set(arr.map(x => String(x).trim()).filter(Boolean)));
+    if (kind === 'artist') state.artistSel = uniq;
+    if (kind === 'class') state.classSel = uniq;
+    if (kind === 'tags') state.tagSel = uniq;
+    renderChips(kind);
+  }
+  function addSelection(kind, value) {
+    const v = String(value).trim(); if (!v) return;
+    if (kind === 'artist') setSelections('artist', [...state.artistSel, v]);
+    if (kind === 'class') setSelections('class', [...state.classSel, v]);
+    if (kind === 'tags') setSelections('tags', [...state.tagSel, v]);
+  }
+  function removeSelection(kind, value) {
+    if (kind === 'artist') setSelections('artist', state.artistSel.filter(x => x !== value));
+    if (kind === 'class') setSelections('class', state.classSel.filter(x => x !== value));
+    if (kind === 'tags') setSelections('tags', state.tagSel.filter(x => x !== value));
+    state.page=1; applyFilters();
+  }
+
+  function renderChips(kind) {
+    const list = kind === 'artist' ? state.artistSel : kind === 'class' ? state.classSel : state.tagSel;
+    const host = kind === 'artist' ? artistChips : kind === 'class' ? classChips : tagsChips;
+    host.innerHTML = '';
+    if (!list.length) { host.style.display = 'none'; return; }
+    host.style.display = 'flex';
+    for (const v of list) {
+      const span = document.createElement('span');
+      span.className = 'chip';
+      span.innerHTML = `${escapeHTML(v)} <button title="Remove" aria-label="Remove">✕</button>`;
+      span.querySelector('button').addEventListener('click', () => removeSelection(kind, v));
+      host.appendChild(span);
     }
-    wireTypeahead('artist', artistInput, artistList, artistToggle, artistClear);
-    wireTypeahead('class', classInput, classList, classToggle, classClear);
-    wireTypeahead('tags', tagsInput, tagsList, tagsToggle, tagsClear);
+  }
 
-    document.addEventListener('click', (e) => {
-      const inside = (elem) => elem && (elem.contains(e.target) || e.target === elem);
-      if (!inside(artistList) && !inside(artistInput) && e.target !== artistToggle) hideList('artist');
-      if (!inside(classList) && !inside(classInput) && e.target !== classToggle) hideList('class');
-      if (!inside(tagsList) && !inside(tagsInput) && e.target !== tagsToggle) hideList('tags');
+  function buildIndexes(rows) {
+    const aSet = new Set(), cSet = new Set(), tSet = new Set();
+    for (const r of rows) {
+      splitMulti(val(r['artist_display_name'])).forEach(s => { if (s) aSet.add(s); });
+      splitMulti(val(r['classification'])).forEach(s => { if (s) cSet.add(s); });
+      splitMulti(val(r['tags'])).forEach(s => { if (s) tSet.add(s); });
+    }
+    state.artistIndex = Array.from(aSet).sort((a,b)=>a.localeCompare(b));
+    state.classIndex = Array.from(cSet).sort((a,b)=>a.localeCompare(b));
+    state.tagIndex = Array.from(tSet).sort((a,b)=>a.localeCompare(b));
+  }
+
+  function genEvenTicks(min, max, count) {
+    const ticks = [];
+    const steps = Math.max(1, count - 1);
+    for (let i = 0; i < count; i++) {
+      const v = min + (i * (max - min)) / steps;
+      ticks.push(Math.round(v));
+    }
+    return ticks;
+  }
+
+  function drawTicks() {
+    drawTicksFor('ticksMin', yearMin);
+    drawTicksFor('ticksMax', yearMax);
+  }
+
+  function drawTicksFor(svgId, inputEl) {
+    const svg = document.getElementById(svgId);
+    const lo = +inputEl.min, hi = +inputEl.max;
+    const ticks = genEvenTicks(lo, hi, TICK_COUNT);
+    const W = svg.clientWidth || svg.parentElement.clientWidth || 300;
+    const H = svg.clientHeight || 28;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = '';
+
+    const base = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    base.setAttribute('x1', 0); base.setAttribute('y1', H-10);
+    base.setAttribute('x2', W); base.setAttribute('y2', H-10);
+    base.setAttribute('class', 'tick-line');
+    svg.appendChild(base);
+
+    for (const t of ticks) {
+      const p = (t - lo) / (hi - lo);
+      const x = Math.round(p * W);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x); line.setAttribute('y1', H-18);
+      line.setAttribute('x2', x); line.setAttribute('y2', H-4);
+      line.setAttribute('class', 'tick-line');
+      svg.appendChild(line);
+
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', x); dot.setAttribute('cy', H-10); dot.setAttribute('r', 2.8);
+      dot.setAttribute('class', 'tick-dot');
+      svg.appendChild(dot);
+
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      lbl.setAttribute('x', x); lbl.setAttribute('y', 10);
+      lbl.setAttribute('class', 'tick-label');
+      lbl.textContent = t;
+      svg.appendChild(lbl);
+    }
+  }
+
+  function loadCSV(file) {
+    status.textContent = 'Parsing…';
+    try {
+      Papa.parse(file, {
+        header: true, dynamicTyping: true, skipEmptyLines: true,
+        transformHeader: (h) => (h || '').toString().trim(),
+        complete: (res) => {
+          if (res.errors && res.errors.length) errors.textContent = 'Parser warnings/errors:\n' + res.errors.slice(0,5).map(e => e.message + ' @ row ' + e.row).join('\n');
+          if (!res.data || !res.data.length) { status.textContent = 'No rows found.'; return; }
+          const cols = res.meta && res.meta.fields ? res.meta.fields.map(c => c.trim()) : Object.keys(res.data[0]);
+          state.rows = res.data.map(r => normalizeRow(r));
+          state.columns = cols;
+          buildIndexes(state.rows);
+          status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns`;
+          drawTicks();
+          applyFilters();
+        },
+        error: (err) => { console.error(err); status.textContent = 'Error parsing CSV'; errors.textContent = String(err); }
+      });
+    } catch (ex) { status.textContent = 'Error parsing CSV'; errors.textContent = String(ex && ex.stack || ex); }
+  }
+
+  function normalizeRow(r) {
+    const low = {}; for (const k in r) if (Object.prototype.hasOwnProperty.call(r,k)) low[k.toLowerCase()] = r[k];
+    return {
+      title: val(low['title'] ?? r['title']),
+      department: val(low['department'] ?? r['department']),
+      classification: val(low['classification'] ?? r['classification']),
+      culture: val(low['culture'] ?? r['culture']),
+      object_begin_date: num(low['object_begin_date'] ?? r['object_begin_date']),
+      object_end_date: num(low['object_end_date'] ?? r['object_end_date']),
+      artist_display_name: val(low['artist_display_name'] ?? r['artist_display_name']),
+      artist_nationality: val(low['artist_nationality'] ?? r['artist_nationality']),
+      artist_begin_date: num(low['artist_begin_date'] ?? r['artist_begin_date']),
+      artist_end_date: num(low['artist_end_date'] ?? r['artist_end_date']),
+      tags: val(low['tags'] ?? r['tags']),
+      ...low
+    };
+  }
+
+  function applyFilters() {
+    const query = (q.value || '').toLowerCase().trim();
+    const ymin = +yearMin.value, ymax = +yearMax.value;
+    const filtered = [];
+    for (const r of state.rows) {
+      const t = val(r['title']).toLowerCase();
+      const d = val(r['department']).toLowerCase();
+      const c = val(r['culture']).toLowerCase();
+      const cl = val(r['classification']).toLowerCase();
+      const a = val(r['artist_display_name']).toLowerCase();
+      const n = val(r['artist_nationality']).toLowerCase();
+      const tg = val(r['tags']).toLowerCase();
+      const fields = [t, d, c, cl, a, n, tg].join(' | ');
+      if (query && !fields.includes(query)) continue;
+
+      if (state.artistSel.length) {
+        const rowArtists = splitMulti(val(r['artist_display_name'])).map(s => s.toLowerCase());
+        if (!state.artistSel.some(v => rowArtists.includes(v.toLowerCase()))) continue;
+      }
+      if (state.classSel.length) {
+        const rowClasses = splitMulti(val(r['classification'])).map(s => s.toLowerCase());
+        if (!state.classSel.some(v => rowClasses.includes(v.toLowerCase()))) continue;
+      }
+      if (state.tagSel.length) {
+        const rowTags = splitMulti(val(r['tags'])).map(s => s.toLowerCase());
+        if (!state.tagSel.some(v => rowTags.includes(v.toLowerCase()))) continue;
+      }
+
+      const b = num(r['object_begin_date']), e = num(r['object_end_date']);
+      if (Number.isFinite(b) || Number.isFinite(e)) { const lo = Number.isFinite(b) ? b : e, hi = Number.isFinite(e) ? e : b; if (!(lo <= ymax && hi >= ymin)) continue; }
+      filtered.push(r);
+    }
+    state.filtered = sortRows(filtered, state.sortKey, state.sortDir);
+    count.textContent = filtered.length.toLocaleString();
+    totalRows.textContent = filtered.length.toLocaleString();
+    state.page = 1;
+    renderColumnPicker();
+    renderTableHeader();
+    renderPaged();
+    renderDeptChart(filtered);
+  }
+
+  function sortRows(rows, key, dir) {
+    const def = state.colDefs.find(c => c.key === key) || { type:'text' };
+    const multival = (v) => splitMulti(val(v))[0] || ''; // first value if multi
+    const cmp = (a,b) => {
+      let va = a[key], vb = b[key];
+      if (def.type === 'num') { va = Number(va); vb = Number(vb); va = Number.isFinite(va)?va:NaN; vb = Number.isFinite(vb)?vb:NaN; }
+      else { va = multival(va).toLowerCase(); vb = multival(vb).toLowerCase(); }
+      if (va === vb || (Number.isNaN(va) && Number.isNaN(vb))) return 0;
+      if (Number.isNaN(va)) return 1;
+      if (Number.isNaN(vb)) return -1;
+      return va < vb ? -1 : 1;
+    };
+    const sorted = rows.slice().sort(cmp);
+    return dir === 'asc' ? sorted : sorted.reverse();
+  }
+
+  function renderTableHeader() {
+    theadRow.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (const c of state.colDefs) {
+      if (!c.visible) continue;
+      const th = document.createElement('th');
+      th.textContent = c.label;
+      const sortSpan = document.createElement('span'); sortSpan.className = 'sort';
+      const arrow = (state.sortKey === c.key) ? (state.sortDir === 'asc' ? '▲' : '▼') : '⇵';
+      sortSpan.textContent = ' ' + arrow;
+      th.appendChild(sortSpan);
+      th.addEventListener('click', () => {
+        if (state.sortKey === c.key) state.sortDir = (state.sortDir === 'asc' ? 'desc' : 'asc');
+        else { state.sortKey = c.key; state.sortDir = 'asc'; }
+        state.filtered = sortRows(state.filtered, state.sortKey, state.sortDir);
+        renderTableHeader();
+        renderPaged();
+      });
+      frag.appendChild(th);
+    }
+    theadRow.appendChild(frag);
+  }
+
+  function visibleCols() { return state.colDefs.filter(c => c.visible); }
+
+  function renderPaged() {
+    const pc = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+    if (state.page > pc) state.page = pc;
+    pageNum.textContent = state.page;
+    pageCount.textContent = pc;
+    const start = (state.page - 1) * state.pageSize;
+    const end = Math.min(state.filtered.length, start + state.pageSize);
+    showingRange.textContent = (state.filtered.length ? (start+1) : 0) + '–' + end;
+    const pageRows = state.filtered.slice(start, end);
+    renderTable(pageRows);
+  }
+
+  function renderTable(rows) {
+    tbody.innerHTML = '';
+    const cols = visibleCols();
+    for (const r of rows) {
+      const tr = document.createElement('tr');
+      for (const c of cols) {
+        let td = document.createElement('td');
+        if (c.type === 'multi') {
+          const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.gap='6px';
+          splitMulti(val(r[c.key])).forEach(s => {
+            const span = document.createElement('span'); span.className = 'pill'; span.textContent = s.trim();
+            if (span.textContent) wrap.appendChild(span);
+          });
+          td.appendChild(wrap);
+        } else {
+          const v = c.type === 'num' ? num(r[c.key]) : val(r[c.key]);
+          td.textContent = (v==null || (Number.isNaN(v) && c.type==='num')) ? '' : String(v);
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderDeptChart(rows) {
+    const ctx = document.getElementById('deptChart').getContext('2d');
+    const counts = new Map();
+    for (const r of rows) { const d = firstValue(splitMulti(val(r['department']))); counts.set(d, (counts.get(d) || 0) + 1); }
+    const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a,b)=>b[1]-a[1]).slice(0,15);
+    const labels = sorted.map(x=>x[0]); const data = sorted.map(x=>x[1]);
+    const palette = [
+      'rgba(59,130,246,0.75)','rgba(99,102,241,0.75)','rgba(6,182,212,0.75)','rgba(249,115,22,0.75)',
+      'rgba(34,197,94,0.75)','rgba(244,63,94,0.75)','rgba(234,179,8,0.75)','rgba(2,132,199,0.75)',
+      'rgba(16,185,129,0.75)','rgba(20,184,166,0.75)','rgba(245,158,11,0.75)','rgba(168,85,247,0.75)',
+      'rgba(236,72,153,0.75)','rgba(59,130,246,0.55)','rgba(99,102,241,0.55)'
+    ];
+    const borders = palette.map(c => c.replace('0.75','1').replace('0.55','0.9'));
+    if (window._deptChart) window._deptChart.destroy();
+    window._deptChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Count', data, backgroundColor: palette, borderColor: borders, borderWidth: 1, borderRadius: 6 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#475569' }, grid: { display:false } },
+          y: { ticks: { color: '#475569' }, grid: { color: 'rgba(148,163,184,0.2)' } }
+        },
+        plugins: {
+          legend: { labels: { color: '#0f172a' } },
+          tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', titleColor:'#fff', bodyColor:'#e2e8f0', borderColor:'#1f2937', borderWidth:1 }
+        }
+      }
     });
+  }
 
-    function handleListKey(e, kind) {
-      const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
-      const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
-      const opts = [...listEl.querySelectorAll('.option')];
-      const cur = opts.findIndex(o => o.getAttribute('aria-selected') === 'true');
-      if (e.key === 'ArrowDown') { e.preventDefault(); const idx = Math.min(cur + 1, opts.length - 1); selectOption(opts, idx); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); const idx = Math.max(cur - 1, 0); selectOption(opts, idx); }
-      else if (e.key === 'Enter') {
-        e.preventDefault();
-        const value = cur >= 0 ? opts[cur].dataset.value : inputEl.value.trim();
-        if (value) { addSelection(kind, value); inputEl.value=''; showList(kind, ''); applyFilters(); }
-      } else if (e.key === 'Escape') { hideList(kind); }
-    }
+  function num(v) { const n = Number(v); return Number.isFinite(n) ? n : NaN; }
+  function val(v) { return (v === null || v === undefined) ? '' : String(v); }
+  function splitMulti(value) { if (value == null) return []; const s = String(value); return s.includes('|') ? s.split('|').map(x => x.trim()) : [s.trim()]; }
+  function firstValue(arr) { return (arr && arr.length) ? arr[0] : ''; }
+  function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
+  function escapeHTML(s) { return String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
 
-    function selectOption(opts, idx) {
-      opts.forEach(o => o.setAttribute('aria-selected', 'false'));
-      if (idx >= 0 && idx < opts.length) {
-        opts[idx].setAttribute('aria-selected', 'true');
-        opts[idx].scrollIntoView({ block: 'nearest' });
-      }
-    }
+  function toCSV(rows, cols) {
+    if (!cols || !cols.length) cols = Object.keys(rows[0] || {});
+    const header = cols.join(',');
+    const lines = [header];
+    for (const r of rows) { const line = cols.map(k => csvEscape(r[k])); lines.push(line.join(',')); }
+    return lines.join('\n');
+  }
+  function csvEscape(v) { if (v === null || v === undefined) return ''; const s = String(v); if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'; return s; }
 
-    function showList(kind, query) {
-      const ql = (query || '').toLowerCase();
-      const idx = kind === 'artist' ? state.artistIndex : kind === 'class' ? state.classIndex : state.tagIndex;
-      const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
-      const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
-      const items = idx.filter(a => !ql || a.toLowerCase().includes(ql)).slice(0, 60);
-      listEl.innerHTML = items.map((a, i) => `<div class="option" role="option" aria-selected="${i===0?'true':'false'}" data-value="${escapeHTML(a)}">${escapeHTML(a)}</div>`).join('');
-      listEl.hidden = items.length === 0;
-      inputEl.setAttribute('aria-expanded', String(!listEl.hidden));
-      [...listEl.querySelectorAll('.option')].forEach(opt => {
-        opt.addEventListener('mouseenter', () => { [...listEl.querySelectorAll('.option')].forEach(o=>o.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); });
-        opt.addEventListener('click', () => { addSelection(kind, opt.dataset.value); showList(kind, ''); applyFilters(); });
-      });
-    }
-    function hideList(kind) {
-      const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
-      const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
-      listEl.hidden = true; inputEl.setAttribute('aria-expanded', 'false');
-    }
-
-    function setSelections(kind, arr) {
-      const uniq = Array.from(new Set(arr.map(x => String(x).trim()).filter(Boolean)));
-      if (kind === 'artist') state.artistSel = uniq;
-      if (kind === 'class') state.classSel = uniq;
-      if (kind === 'tags') state.tagSel = uniq;
-      renderChips(kind);
-    }
-    function addSelection(kind, value) {
-      const v = String(value).trim(); if (!v) return;
-      if (kind === 'artist') setSelections('artist', [...state.artistSel, v]);
-      if (kind === 'class') setSelections('class', [...state.classSel, v]);
-      if (kind === 'tags') setSelections('tags', [...state.tagSel, v]);
-    }
-    function removeSelection(kind, value) {
-      if (kind === 'artist') setSelections('artist', state.artistSel.filter(x => x !== value));
-      if (kind === 'class') setSelections('class', state.classSel.filter(x => x !== value));
-      if (kind === 'tags') setSelections('tags', state.tagSel.filter(x => x !== value));
-      applyFilters();
-    }
-
-    function renderChips(kind) {
-      const list = kind === 'artist' ? state.artistSel : kind === 'class' ? state.classSel : state.tagSel;
-      const host = kind === 'artist' ? artistChips : kind === 'class' ? classChips : tagsChips;
-      host.innerHTML = '';
-      if (!list.length) { host.style.display = 'none'; return; }
-      host.style.display = 'flex';
-      for (const v of list) {
-        const span = document.createElement('span');
-        span.className = 'chip';
-        span.innerHTML = `${escapeHTML(v)} <button title="Remove" aria-label="Remove">✕</button>`;
-        span.querySelector('button').addEventListener('click', () => removeSelection(kind, v));
-        host.appendChild(span);
-      }
-    }
-
-    function buildIndexes(rows) {
-      const aSet = new Set(), cSet = new Set(), tSet = new Set();
-      for (const r of rows) {
-        splitMulti(val(r['artist_display_name'])).forEach(s => { if (s) aSet.add(s); });
-        splitMulti(val(r['classification'])).forEach(s => { if (s) cSet.add(s); });
-        splitMulti(val(r['tags'])).forEach(s => { if (s) tSet.add(s); });
-      }
-      state.artistIndex = Array.from(aSet).sort((a,b)=>a.localeCompare(b));
-      state.classIndex = Array.from(cSet).sort((a,b)=>a.localeCompare(b));
-      state.tagIndex = Array.from(tSet).sort((a,b)=>a.localeCompare(b));
-    }
-
-    function genEvenTicks(min, max, count) {
-      const ticks = [];
-      const steps = Math.max(1, count - 1);
-      for (let i = 0; i < count; i++) {
-        const v = min + (i * (max - min)) / steps;
-        ticks.push(Math.round(v));
-      }
-      return ticks;
-    }
-
-    function drawTicks() {
-      drawTicksFor('ticksMin', yearMin);
-      drawTicksFor('ticksMax', yearMax);
-    }
-
-    function drawTicksFor(svgId, inputEl) {
-      const svg = document.getElementById(svgId);
-      const lo = +inputEl.min, hi = +inputEl.max;
-      const ticks = genEvenTicks(lo, hi, TICK_COUNT);
-      const W = svg.clientWidth || svg.parentElement.clientWidth || 300;
-      const H = svg.clientHeight || 26;
-      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      svg.innerHTML = '';
-
-      const base = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      base.setAttribute('x1', 0); base.setAttribute('y1', H-10);
-      base.setAttribute('x2', W); base.setAttribute('y2', H-10);
-      base.setAttribute('class', 'tick-line');
-      svg.appendChild(base);
-
-      for (const t of ticks) {
-        const p = (t - lo) / (hi - lo);
-        const x = Math.round(p * W);
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', x); line.setAttribute('y1', H-16);
-        line.setAttribute('x2', x); line.setAttribute('y2', H-4);
-        line.setAttribute('class', 'tick-line');
-        svg.appendChild(line);
-
-        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        dot.setAttribute('cx', x); dot.setAttribute('cy', H-10); dot.setAttribute('r', 2.5);
-        dot.setAttribute('class', 'tick-dot');
-        svg.appendChild(dot);
-
-        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        lbl.setAttribute('x', x); lbl.setAttribute('y', 10);
-        lbl.setAttribute('class', 'tick-label');
-        lbl.textContent = t;
-        svg.appendChild(lbl);
-      }
-    }
-
-    function loadCSV(file) {
-      status.textContent = 'Parsing…';
-      try {
-        Papa.parse(file, {
-          header: true, dynamicTyping: true, skipEmptyLines: true,
-          transformHeader: (h) => (h || '').toString().trim(),
-          complete: (res) => {
-            if (res.errors && res.errors.length) errors.textContent = 'Parser warnings/errors:\n' + res.errors.slice(0,5).map(e => e.message + ' @ row ' + e.row).join('\n');
-            if (!res.data || !res.data.length) { status.textContent = 'No rows found.'; return; }
-            const cols = res.meta && res.meta.fields ? res.meta.fields.map(c => c.trim()) : Object.keys(res.data[0]);
-            state.rows = res.data.map(r => normalizeRow(r));
-            state.columns = cols;
-            buildIndexes(state.rows);
-            status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns • ${state.artistIndex.length.toLocaleString()} artists • ${state.classIndex.length.toLocaleString()} classifications • ${state.tagIndex.length.toLocaleString()} tags`;
-            drawTicks();
-            applyFilters();
-          },
-          error: (err) => { console.error(err); status.textContent = 'Error parsing CSV'; errors.textContent = String(err); }
-        });
-      } catch (ex) { status.textContent = 'Error parsing CSV'; errors.textContent = String(ex && ex.stack || ex); }
-    }
-
-    function normalizeRow(r) {
-      const low = {}; for (const k in r) if (Object.prototype.hasOwnProperty.call(r,k)) low[k.toLowerCase()] = r[k];
-      return {
-        title: val(low['title'] ?? r['title']),
-        department: val(low['department'] ?? r['department']),
-        classification: val(low['classification'] ?? r['classification']),
-        culture: val(low['culture'] ?? r['culture']),
-        object_begin_date: num(low['object_begin_date'] ?? r['object_begin_date']),
-        object_end_date: num(low['object_end_date'] ?? r['object_end_date']),
-        artist_display_name: val(low['artist_display_name'] ?? r['artist_display_name']),
-        artist_nationality: val(low['artist_nationality'] ?? r['artist_nationality']),
-        artist_begin_date: num(low['artist_begin_date'] ?? r['artist_begin_date']),
-        artist_end_date: num(low['artist_end_date'] ?? r['artist_end_date']),
-        tags: val(low['tags'] ?? r['tags']),
-        ...low
-      };
-    }
-
-    function applyFilters() {
-      const query = (q.value || '').toLowerCase().trim();
-      const ymin = +yearMin.value, ymax = +yearMax.value;
-      const filtered = [];
-      for (const r of state.rows) {
-        const t = val(r['title']).toLowerCase();
-        const d = val(r['department']).toLowerCase();
-        const c = val(r['culture']).toLowerCase();
-        const cl = val(r['classification']).toLowerCase();
-        const a = val(r['artist_display_name']).toLowerCase();
-        const n = val(r['artist_nationality']).toLowerCase();
-        const tg = val(r['tags']).toLowerCase();
-        const fields = [t, d, c, cl, a, n, tg].join(' | ');
-        if (query && !fields.includes(query)) continue;
-
-        // OR within each field, AND across fields
-        if (state.artistSel.length) {
-          const rowArtists = splitMulti(val(r['artist_display_name'])).map(s => s.toLowerCase());
-          if (!state.artistSel.some(v => rowArtists.includes(v.toLowerCase()))) continue;
-        }
-        if (state.classSel.length) {
-          const rowClasses = splitMulti(val(r['classification'])).map(s => s.toLowerCase());
-          if (!state.classSel.some(v => rowClasses.includes(v.toLowerCase()))) continue;
-        }
-        if (state.tagSel.length) {
-          const rowTags = splitMulti(val(r['tags'])).map(s => s.toLowerCase());
-          if (!state.tagSel.some(v => rowTags.includes(v.toLowerCase()))) continue;
-        }
-
-        const b = num(r['object_begin_date']), e = num(r['object_end_date']);
-        if (Number.isFinite(b) || Number.isFinite(e)) { const lo = Number.isFinite(b) ? b : e, hi = Number.isFinite(e) ? e : b; if (!(lo <= ymax && hi >= ymin)) continue; }
-        filtered.push(r);
-      }
-      state.filtered = filtered;
-      el('count').textContent = filtered.length.toLocaleString();
-      renderTable(filtered.slice(0, 50));
-      renderDeptChart(filtered);
-    }
-
-    // Render helpers -------------------------------------------------------
-    function renderTable(rows) {
-      const tbody = document.querySelector('#table tbody'); tbody.innerHTML = '';
-      for (const r of rows) {
-        const tr = document.createElement('tr');
-        tr.appendChild(tdText(val(r['title'])));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_display_name']))));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_nationality']))));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['culture']))));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['department']))));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['classification']))));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['tags']))));
-        tr.appendChild(tdText(num(r['object_begin_date'])));
-        tr.appendChild(tdText(num(r['object_end_date'])));
-        tbody.appendChild(tr);
-      }
-    }
-
-    function renderDeptChart(rows) {
-      const ctx = document.getElementById('deptChart').getContext('2d');
-      const counts = new Map();
-      for (const r of rows) { const d = firstValue(splitMulti(val(r['department']))); counts.set(d, (counts.get(d) || 0) + 1); }
-      const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a,b)=>b[1]-a[1]).slice(0,15);
-      const labels = sorted.map(x=>x[0]); const data = sorted.map(x=>x[1]);
-      const palette = [
-        'rgba(37,99,235,0.7)','rgba(6,182,212,0.7)','rgba(249,115,22,0.7)','rgba(34,197,94,0.7)',
-        'rgba(139,92,246,0.7)','rgba(244,63,94,0.7)','rgba(234,179,8,0.7)','rgba(2,132,199,0.7)',
-        'rgba(16,185,129,0.7)','rgba(99,102,241,0.7)','rgba(20,184,166,0.7)','rgba(245,158,11,0.7)',
-        'rgba(59,130,246,0.7)','rgba(168,85,247,0.7)','rgba(236,72,153,0.7)'
-      ];
-      const borders = palette.map(c => c.replace('0.7','1'));
-      if (window._deptChart) window._deptChart.destroy();
-      window._deptChart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets: [{ label: 'Count', data, backgroundColor: palette, borderColor: borders, borderWidth: 1 }] },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: { x: { ticks: { color: '#334155' } }, y: { ticks: { color: '#334155' } } },
-          plugins: { legend: { labels: { color: '#334155' } } }
-        }
-      });
-    }
-
-    // DOM & util -----------------------------------------------------------
-    function tdText(text) { const td = document.createElement('td'); td.textContent = text==null? '' : String(text); return td; }
-    function tdBadgesColumn(values) {
-      const td = document.createElement('td');
-      const wrap = document.createElement('div'); wrap.className = 'stack-col';
-      for (const v of values) {
-        const s = v.trim(); if (!s) continue;
-        const span = document.createElement('span'); span.className = 'pill'; span.textContent = s;
-        wrap.appendChild(span);
-      }
-      td.appendChild(wrap); return td;
-    }
-    function splitMulti(value) { if (value == null) return []; const s = String(value); return s.includes('|') ? s.split('|').map(x => x.trim()) : [s.trim()]; }
-    function firstValue(arr) { return (arr && arr.length) ? arr[0] : ''; }
-
-    // General helpers
-    function num(v) { const n = Number(v); return Number.isFinite(n) ? n : NaN; }
-    function val(v) { return (v === null || v === undefined) ? '' : String(v); }
-    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
-    function escapeHTML(s) { return String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
-    function toCSV(rows, cols) { if (!cols || !cols.length) cols = Object.keys(rows[0] || {}); const header = cols.join(','); const lines = [header]; for (const r of rows) { const line = cols.map(k => csvEscape(r[k])); lines.push(line.join(',')); } return lines.join('\n'); }
-    function csvEscape(v) { if (v === null || v === undefined) return ''; const s = String(v); if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'; return s; }
-
-    // initial ticks
-    drawTicks();
-  </script>
+  // Initialize column picker & header early (before data)
+  renderColumnPicker();
+  renderTableHeader();
+  drawTicks();
+</script>
 </body>
 </html>
