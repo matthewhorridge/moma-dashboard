@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Light • Evenly Spaced Ticks)</title>
+  <title>MET CSV Dashboard (Typeahead)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -23,6 +23,8 @@
       --btn-hover:#e0e7ff;
       --pill-bg:#eef6ff;
       --pill-border:#c7ddff;
+      --hover:#f1f5f9;
+      --sel:#e0e7ff;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
@@ -52,6 +54,19 @@
     .tick-line { stroke:#cbd5e1; stroke-width:1; }
     .tick-dot { fill:#94a3b8; }
     .tick-label { font-size:10px; fill:#64748b; text-anchor:middle; }
+
+    /* Typeahead */
+    .combo-wrap { position: relative; }
+    .combo { width:100%; padding-right: 64px; }
+    .combo-controls { position:absolute; right:6px; top:6px; display:flex; gap:6px; }
+    .combo-btn { border:1px solid var(--input-border); background:var(--btn); border-radius:8px; padding:6px 8px; cursor:pointer; }
+    .combo-btn:hover { background:var(--btn-hover); }
+    .listbox { position:absolute; z-index:20; background:white; border:1px solid var(--border); border-radius:10px; width:100%; max-height:240px; overflow:auto; box-shadow: 0 10px 30px rgba(2,6,23,0.08); margin-top:6px; }
+    .option { padding:8px 10px; cursor:pointer; }
+    .option:hover { background: var(--hover); }
+    .option[aria-selected="true"] { background: var(--sel); }
+    .chip { display:inline-flex; align-items:center; gap:6px; background:#eef2ff; border:1px solid #c7d2fe; color:#1e293b; padding:4px 8px; border-radius:999px; font-size:12px; }
+    .chip button { all:unset; cursor:pointer; padding:0 4px; }
   </style>
 </head>
 <body>
@@ -76,6 +91,23 @@
             <div class="muted" style="font-size:12px; margin-bottom:6px;">Search (title / department / classification / culture / artist / nationality / tags)</div>
             <input id="q" type="text" placeholder="Type to filter…" />
           </div>
+
+          <!-- Artist typeahead -->
+          <div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Artist (typeahead)</div>
+            <div class="combo-wrap">
+              <input id="artistInput" class="combo" type="text" placeholder="Start typing an artist…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+              <div class="combo-controls">
+                <button id="artistClear" class="combo-btn" title="Clear selection">✕</button>
+                <button id="artistToggle" class="combo-btn" title="Show suggestions">▾</button>
+              </div>
+              <div id="artistList" class="listbox" role="listbox" hidden></div>
+            </div>
+            <div id="artistChipWrap" style="margin-top:6px; display:none;">
+              <span class="chip">Artist: <span id="artistChip"></span> <button id="artistChipX" title="Remove">✕</button></span>
+            </div>
+          </div>
+
           <div>
             <div class="muted" style="font-size:12px; margin-bottom:6px;">Year range</div>
             <div class="slider-block">
@@ -88,7 +120,8 @@
             </div>
             <div class="muted"><span id="yearMinVal">-600</span> → <span id="yearMaxVal">2025</span></div>
           </div>
-          <div style="display:flex; gap:8px;">
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button id="clearBtn" class="btn">Clear</button>
             <button id="exportBtn" class="btn">Export filtered CSV</button>
           </div>
@@ -144,11 +177,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <script>
-    const state = { rows: [], filtered: [], columns: [], chart: null };
+    const state = { rows: [], filtered: [], columns: [], chart: null, artistIndex: [], artistFilter: null };
     const el = (id) => document.getElementById(id);
     const fileInput = el('fileInput'), q = el('q'), yearMin = el('yearMin'), yearMax = el('yearMax');
     const yearMinVal = el('yearMinVal'), yearMaxVal = el('yearMaxVal'), status = el('status'), errors = el('errors');
     const count = el('count'), exportBtn = el('exportBtn'), clearBtn = el('clearBtn');
+
+    // Typeahead els
+    const artistInput = el('artistInput'), artistList = el('artistList');
+    const artistToggle = el('artistToggle'), artistClear = el('artistClear');
+    const artistChipWrap = el('artistChipWrap'), artistChip = el('artistChip'), artistChipX = el('artistChipX');
 
     const EXPECTED = {
       title: 'title',
@@ -164,24 +202,75 @@
       tags: 'tags'
     };
 
-    // Fewer, evenly spaced ticks (including ends). Adjust count to taste.
+    // even ticks
     const TICK_COUNT = 6;
 
     fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
-    clearBtn.addEventListener('click', () => { q.value=''; yearMin.value='-600'; yearMax.value='2025'; yearMinVal.textContent='-600'; yearMaxVal.textContent='2025'; drawTicks(); if (state.rows.length) applyFilters(); });
+    clearBtn.addEventListener('click', () => { q.value=''; yearMin.value='-600'; yearMax.value='2025'; yearMinVal.textContent='-600'; yearMaxVal.textContent='2025'; setArtistFilter(null); drawTicks(); if (state.rows.length) applyFilters(); });
     q.addEventListener('input', debounce(applyFilters, 150));
     yearMin.addEventListener('input', () => { if (+yearMin.value > +yearMax.value) yearMax.value = yearMin.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; applyFilters(); });
     yearMax.addEventListener('input', () => { if (+yearMax.value < +yearMin.value) yearMin.value = yearMax.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; applyFilters(); });
     window.addEventListener('resize', debounce(drawTicks, 150));
 
-    exportBtn.addEventListener('click', () => {
-      if (!state.filtered.length) return;
-      const csv = toCSV(state.filtered, state.columns);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'met_filtered.csv'; a.click(); URL.revokeObjectURL(url);
+    // typeahead events
+    artistToggle.addEventListener('click', () => { artistInput.focus(); showArtistList(artistInput.value); });
+    artistClear.addEventListener('click', () => { artistInput.value=''; setArtistFilter(null); hideArtistList(); applyFilters(); });
+    artistChipX.addEventListener('click', () => { setArtistFilter(null); applyFilters(); });
+
+    artistInput.addEventListener('input', () => { showArtistList(artistInput.value); });
+    artistInput.addEventListener('focus', () => { showArtistList(artistInput.value); });
+    artistInput.addEventListener('keydown', (e) => {
+      const opts = [...artistList.querySelectorAll('.option')];
+      const cur = opts.findIndex(o => o.getAttribute('aria-selected') === 'true');
+      if (e.key === 'ArrowDown') { e.preventDefault(); const idx = Math.min(cur + 1, opts.length - 1); selectOption(opts, idx); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); const idx = Math.max(cur - 1, 0); selectOption(opts, idx); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (cur >= 0) chooseArtist(opts[cur].dataset.value); else if (artistInput.value.trim()) { chooseArtist(artistInput.value.trim()); } }
+      else if (e.key === 'Escape') { hideArtistList(); }
     });
+
+    document.addEventListener('click', (e) => {
+      if (!artistList.contains(e.target) && e.target !== artistInput && e.target !== artistToggle) {
+        hideArtistList();
+      }
+    });
+
+    function selectOption(opts, idx) {
+      opts.forEach(o => o.setAttribute('aria-selected', 'false'));
+      if (idx >= 0 && idx < opts.length) {
+        opts[idx].setAttribute('aria-selected', 'true');
+        opts[idx].scrollIntoView({ block: 'nearest' });
+      }
+    }
+    function chooseArtist(name) { setArtistFilter(name); artistInput.value=''; hideArtistList(); applyFilters(); }
+    function setArtistFilter(name) {
+      state.artistFilter = name ? String(name) : null;
+      artistChipWrap.style.display = state.artistFilter ? 'inline-flex' : 'none';
+      artistChip.textContent = state.artistFilter || '';
+    }
+
+    function showArtistList(query) {
+      const ql = (query || '').toLowerCase();
+      const items = state.artistIndex
+        .filter(a => !ql || a.toLowerCase().includes(ql))
+        .slice(0, 50);
+      artistList.innerHTML = items.map((a, i) => `<div class="option" role="option" aria-selected="${i===0?'true':'false'}" data-value="${escapeHTML(a)}">${escapeHTML(a)}</div>`).join('');
+      artistList.hidden = items.length === 0;
+      artistInput.setAttribute('aria-expanded', String(!artistList.hidden));
+      [...artistList.querySelectorAll('.option')].forEach(opt => {
+        opt.addEventListener('mouseenter', () => { [...artistList.querySelectorAll('.option')].forEach(o=>o.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); });
+        opt.addEventListener('click', () => { chooseArtist(opt.dataset.value); });
+      });
+    }
+    function hideArtistList() { artistList.hidden = true; artistInput.setAttribute('aria-expanded', 'false'); }
+
+    function buildArtistIndex(rows) {
+      const set = new Set();
+      for (const r of rows) {
+        const artists = splitMulti(val(r['artist_display_name']));
+        for (const a of artists) { const s = a.trim(); if (s) set.add(s); }
+      }
+      state.artistIndex = Array.from(set).sort((a,b)=>a.localeCompare(b));
+    }
 
     function genEvenTicks(min, max, count) {
       const ticks = [];
@@ -201,13 +290,12 @@
     function drawTicksFor(svgId, inputEl) {
       const svg = document.getElementById(svgId);
       const lo = +inputEl.min, hi = +inputEl.max;
-      const ticks = genEvenTicks(lo, hi, TICK_COUNT);
+      const ticks = genEvenTicks(lo, hi, 6);
       const W = svg.clientWidth || svg.parentElement.clientWidth || 300;
       const H = svg.clientHeight || 26;
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.innerHTML = '';
 
-      // base line
       const base = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       base.setAttribute('x1', 0); base.setAttribute('y1', H-10);
       base.setAttribute('x2', W); base.setAttribute('y2', H-10);
@@ -249,7 +337,8 @@
             const mapping = buildHeaderMapping(cols);
             state.rows = res.data.map(r => normalizeRow(r, mapping));
             state.columns = cols;
-            status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns`;
+            buildArtistIndex(state.rows);
+            status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns • ${state.artistIndex.length.toLocaleString()} artists`;
             drawTicks();
             applyFilters();
           },
@@ -266,17 +355,17 @@
     function normalizeRow(r, mapping) {
       const low = {}; for (const k in r) if (Object.prototype.hasOwnProperty.call(r,k)) low[k.toLowerCase()] = r[k];
       return {
-        title: val(low[EXPECTED.title]),
-        department: val(low[EXPECTED.department]),
-        classification: val(low[EXPECTED.classification]),
-        culture: val(low[EXPECTED.culture]),
-        object_begin_date: num(low[EXPECTED.begin]),
-        object_end_date: num(low[EXPECTED.end]),
-        artist_display_name: val(low[EXPECTED.artist]),
-        artist_nationality: val(low[EXPECTED.nationality]),
-        artist_begin_date: num(low[EXPECTED.artist_begin]),
-        artist_end_date: num(low[EXPECTED.artist_end]),
-        tags: val(low[EXPECTED.tags]),
+        title: val(low['title'] ?? r['title']),
+        department: val(low['department'] ?? r['department']),
+        classification: val(low['classification'] ?? r['classification']),
+        culture: val(low['culture'] ?? r['culture']),
+        object_begin_date: num(low['object_begin_date'] ?? r['object_begin_date']),
+        object_end_date: num(low['object_end_date'] ?? r['object_end_date']),
+        artist_display_name: val(low['artist_display_name'] ?? r['artist_display_name']),
+        artist_nationality: val(low['artist_nationality'] ?? r['artist_nationality']),
+        artist_begin_date: num(low['artist_begin_date'] ?? r['artist_begin_date']),
+        artist_end_date: num(low['artist_end_date'] ?? r['artist_end_date']),
+        tags: val(low['tags'] ?? r['tags']),
         ...low
       };
     }
@@ -295,6 +384,13 @@
         const tg = val(r['tags']).toLowerCase();
         const fields = [t, d, c, cl, a, n, tg].join(' | ');
         if (query && !fields.includes(query)) continue;
+
+        // Artist filter (matches any split artist equal-ignorecase)
+        if (state.artistFilter) {
+          const wanted = state.artistFilter.toLowerCase();
+          const artists = splitMulti(val(r['artist_display_name'])).map(s => s.toLowerCase());
+          if (!artists.some(x => x === wanted)) continue;
+        }
 
         const b = num(r['object_begin_date']), e = num(r['object_end_date']);
         if (Number.isFinite(b) || Number.isFinite(e)) { const lo = Number.isFinite(b) ? b : e, hi = Number.isFinite(e) ? e : b; if (!(lo <= ymax && hi >= ymin)) continue; }
