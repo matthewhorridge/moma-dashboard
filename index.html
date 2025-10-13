@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Typeahead: Artist, Classification, Tags)</title>
+  <title>MET CSV Dashboard (Typeahead: Multi-Select Chips)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -93,9 +93,9 @@
             <input id="q" type="text" placeholder="Type to filter…" />
           </div>
 
-          <!-- Artist typeahead -->
+          <!-- Artist typeahead (multi) -->
           <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Artist</div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Artist (multi)</div>
             <div class="combo-wrap">
               <input id="artistInput" class="combo" type="text" placeholder="Start typing an artist…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
               <div class="combo-controls">
@@ -104,14 +104,12 @@
               </div>
               <div id="artistList" class="listbox" role="listbox" hidden></div>
             </div>
-            <div id="artistChipWrap" class="chips-row" style="display:none;">
-              <span class="chip">Artist: <span id="artistChip"></span> <button id="artistChipX" title="Remove">✕</button></span>
-            </div>
+            <div id="artistChips" class="chips-row" style="display:none;"></div>
           </div>
 
-          <!-- Classification typeahead -->
+          <!-- Classification typeahead (multi) -->
           <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Classification</div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Classification (multi)</div>
             <div class="combo-wrap">
               <input id="classInput" class="combo" type="text" placeholder="Type classification…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
               <div class="combo-controls">
@@ -120,14 +118,12 @@
               </div>
               <div id="classList" class="listbox" role="listbox" hidden></div>
             </div>
-            <div id="classChipWrap" class="chips-row" style="display:none;">
-              <span class="chip">Class: <span id="classChip"></span> <button id="classChipX" title="Remove">✕</button></span>
-            </div>
+            <div id="classChips" class="chips-row" style="display:none;"></div>
           </div>
 
-          <!-- Tags typeahead -->
+          <!-- Tags typeahead (multi) -->
           <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Tags</div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Tags (multi)</div>
             <div class="combo-wrap">
               <input id="tagsInput" class="combo" type="text" placeholder="Type a tag…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
               <div class="combo-controls">
@@ -136,9 +132,7 @@
               </div>
               <div id="tagsList" class="listbox" role="listbox" hidden></div>
             </div>
-            <div id="tagsChipWrap" class="chips-row" style="display:none;">
-              <span class="chip">Tag: <span id="tagsChip"></span> <button id="tagsChipX" title="Remove">✕</button></span>
-            </div>
+            <div id="tagsChips" class="chips-row" style="display:none;"></div>
           </div>
 
           <div>
@@ -213,7 +207,7 @@
     const state = {
       rows: [], filtered: [], columns: [], chart: null,
       artistIndex: [], classIndex: [], tagIndex: [],
-      artistFilter: null, classFilter: null, tagFilter: null
+      artistSel: [], classSel: [], tagSel: []
     };
     const el = (id) => document.getElementById(id);
     const fileInput = el('fileInput'), q = el('q'), yearMin = el('yearMin'), yearMax = el('yearMax');
@@ -221,17 +215,9 @@
     const count = el('count'), exportBtn = el('exportBtn'), clearBtn = el('clearBtn');
 
     // Typeahead els
-    const artistInput = el('artistInput'), artistList = el('artistList');
-    const artistToggle = el('artistToggle'), artistClear = el('artistClear');
-    const artistChipWrap = el('artistChipWrap'), artistChip = el('artistChip'), artistChipX = el('artistChipX');
-
-    const classInput = el('classInput'), classList = el('classList');
-    const classToggle = el('classToggle'), classClear = el('classClear');
-    const classChipWrap = el('classChipWrap'), classChip = el('classChip'), classChipX = el('classChipX');
-
-    const tagsInput = el('tagsInput'), tagsList = el('tagsList');
-    const tagsToggle = el('tagsToggle'), tagsClear = el('tagsClear');
-    const tagsChipWrap = el('tagsChipWrap'), tagsChip = el('tagsChip'), tagsChipX = el('tagsChipX');
+    const artistInput = el('artistInput'), artistList = el('artistList'), artistToggle = el('artistToggle'), artistClear = el('artistClear'), artistChips = el('artistChips');
+    const classInput = el('classInput'), classList = el('classList'), classToggle = el('classToggle'), classClear = el('classClear'), classChips = el('classChips');
+    const tagsInput = el('tagsInput'), tagsList = el('tagsList'), tagsToggle = el('tagsToggle'), tagsClear = el('tagsClear'), tagsChips = el('tagsChips');
 
     const EXPECTED = {
       title: 'title',
@@ -254,7 +240,7 @@
     clearBtn.addEventListener('click', () => {
       q.value=''; yearMin.value='-600'; yearMax.value='2025';
       yearMinVal.textContent='-600'; yearMaxVal.textContent='2025';
-      setArtistFilter(null); setClassFilter(null); setTagFilter(null);
+      setSelections('artist', []); setSelections('class', []); setSelections('tags', []);
       drawTicks(); if (state.rows.length) applyFilters();
     });
     q.addEventListener('input', debounce(applyFilters, 150));
@@ -262,29 +248,17 @@
     yearMax.addEventListener('input', () => { if (+yearMax.value < +yearMin.value) yearMin.value = yearMax.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; applyFilters(); });
     window.addEventListener('resize', debounce(drawTicks, 150));
 
-    // --- Typeahead wiring (Artist)
-    artistToggle.addEventListener('click', () => { artistInput.focus(); showList('artist', artistInput.value); });
-    artistClear.addEventListener('click', () => { artistInput.value=''; setArtistFilter(null); hideList('artist'); applyFilters(); });
-    artistChipX.addEventListener('click', () => { setArtistFilter(null); applyFilters(); });
-    artistInput.addEventListener('input', () => { showList('artist', artistInput.value); });
-    artistInput.addEventListener('focus', () => { showList('artist', artistInput.value); });
-    artistInput.addEventListener('keydown', (e) => handleListKey(e, 'artist'));
-
-    // --- Typeahead wiring (Classification)
-    classToggle.addEventListener('click', () => { classInput.focus(); showList('class', classInput.value); });
-    classClear.addEventListener('click', () => { classInput.value=''; setClassFilter(null); hideList('class'); applyFilters(); });
-    classChipX.addEventListener('click', () => { setClassFilter(null); applyFilters(); });
-    classInput.addEventListener('input', () => { showList('class', classInput.value); });
-    classInput.addEventListener('focus', () => { showList('class', classInput.value); });
-    classInput.addEventListener('keydown', (e) => handleListKey(e, 'class'));
-
-    // --- Typeahead wiring (Tags)
-    tagsToggle.addEventListener('click', () => { tagsInput.focus(); showList('tags', tagsInput.value); });
-    tagsClear.addEventListener('click', () => { tagsInput.value=''; setTagFilter(null); hideList('tags'); applyFilters(); });
-    tagsChipX.addEventListener('click', () => { setTagFilter(null); applyFilters(); });
-    tagsInput.addEventListener('input', () => { showList('tags', tagsInput.value); });
-    tagsInput.addEventListener('focus', () => { showList('tags', tagsInput.value); });
-    tagsInput.addEventListener('keydown', (e) => handleListKey(e, 'tags'));
+    // --- Typeahead wiring helpers
+    function wireTypeahead(kind, inputEl, listEl, toggleBtn, clearBtn) {
+      toggleBtn.addEventListener('click', () => { inputEl.focus(); showList(kind, inputEl.value); });
+      clearBtn.addEventListener('click', () => { inputEl.value=''; setSelections(kind, []); hideList(kind); applyFilters(); });
+      inputEl.addEventListener('input', () => { showList(kind, inputEl.value); });
+      inputEl.addEventListener('focus', () => { showList(kind, inputEl.value); });
+      inputEl.addEventListener('keydown', (e) => handleListKey(e, kind));
+    }
+    wireTypeahead('artist', artistInput, artistList, artistToggle, artistClear);
+    wireTypeahead('class', classInput, classList, classToggle, classClear);
+    wireTypeahead('tags', tagsInput, tagsList, tagsToggle, tagsClear);
 
     document.addEventListener('click', (e) => {
       const inside = (elem) => elem && (elem.contains(e.target) || e.target === elem);
@@ -303,7 +277,7 @@
       else if (e.key === 'Enter') {
         e.preventDefault();
         const value = cur >= 0 ? opts[cur].dataset.value : inputEl.value.trim();
-        if (value) choose(kind, value);
+        if (value) { addSelection(kind, value); inputEl.value=''; showList(kind, ''); applyFilters(); }
       } else if (e.key === 'Escape') { hideList(kind); }
     }
 
@@ -313,29 +287,6 @@
         opts[idx].setAttribute('aria-selected', 'true');
         opts[idx].scrollIntoView({ block: 'nearest' });
       }
-    }
-
-    function choose(kind, value) {
-      if (kind === 'artist') { setArtistFilter(value); artistInput.value=''; hideList(kind); }
-      if (kind === 'class') { setClassFilter(value); classInput.value=''; hideList(kind); }
-      if (kind === 'tags') { setTagFilter(value); tagsInput.value=''; hideList(kind); }
-      applyFilters();
-    }
-
-    function setArtistFilter(name) {
-      state.artistFilter = name ? String(name) : null;
-      artistChipWrap.style.display = state.artistFilter ? 'flex' : 'none';
-      artistChip.textContent = state.artistFilter || '';
-    }
-    function setClassFilter(name) {
-      state.classFilter = name ? String(name) : null;
-      classChipWrap.style.display = state.classFilter ? 'flex' : 'none';
-      classChip.textContent = state.classFilter || '';
-    }
-    function setTagFilter(name) {
-      state.tagFilter = name ? String(name) : null;
-      tagsChipWrap.style.display = state.tagFilter ? 'flex' : 'none';
-      tagsChip.textContent = state.tagFilter || '';
     }
 
     function showList(kind, query) {
@@ -349,13 +300,48 @@
       inputEl.setAttribute('aria-expanded', String(!listEl.hidden));
       [...listEl.querySelectorAll('.option')].forEach(opt => {
         opt.addEventListener('mouseenter', () => { [...listEl.querySelectorAll('.option')].forEach(o=>o.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); });
-        opt.addEventListener('click', () => { choose(kind, opt.dataset.value); });
+        opt.addEventListener('click', () => { addSelection(kind, opt.dataset.value); showList(kind, ''); applyFilters(); });
       });
     }
     function hideList(kind) {
       const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
       const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
       listEl.hidden = true; inputEl.setAttribute('aria-expanded', 'false');
+    }
+
+    function setSelections(kind, arr) {
+      const uniq = Array.from(new Set(arr.map(x => String(x).trim()).filter(Boolean)));
+      if (kind === 'artist') state.artistSel = uniq;
+      if (kind === 'class') state.classSel = uniq;
+      if (kind === 'tags') state.tagSel = uniq;
+      renderChips(kind);
+    }
+    function addSelection(kind, value) {
+      const v = String(value).trim(); if (!v) return;
+      if (kind === 'artist') setSelections('artist', [...state.artistSel, v]);
+      if (kind === 'class') setSelections('class', [...state.classSel, v]);
+      if (kind === 'tags') setSelections('tags', [...state.tagSel, v]);
+    }
+    function removeSelection(kind, value) {
+      if (kind === 'artist') setSelections('artist', state.artistSel.filter(x => x !== value));
+      if (kind === 'class') setSelections('class', state.classSel.filter(x => x !== value));
+      if (kind === 'tags') setSelections('tags', state.tagSel.filter(x => x !== value));
+      applyFilters();
+    }
+
+    function renderChips(kind) {
+      const list = kind === 'artist' ? state.artistSel : kind === 'class' ? state.classSel : state.tagSel;
+      const host = kind === 'artist' ? artistChips : kind === 'class' ? classChips : tagsChips;
+      host.innerHTML = '';
+      if (!list.length) { host.style.display = 'none'; return; }
+      host.style.display = 'flex';
+      for (const v of list) {
+        const span = document.createElement('span');
+        span.className = 'chip';
+        span.innerHTML = `${escapeHTML(v)} <button title="Remove" aria-label="Remove">✕</button>`;
+        span.querySelector('button').addEventListener('click', () => removeSelection(kind, v));
+        host.appendChild(span);
+      }
     }
 
     function buildIndexes(rows) {
@@ -477,20 +463,18 @@
         const fields = [t, d, c, cl, a, n, tg].join(' | ');
         if (query && !fields.includes(query)) continue;
 
-        if (state.artistFilter) {
-          const wanted = state.artistFilter.toLowerCase();
-          const artists = splitMulti(val(r['artist_display_name'])).map(s => s.toLowerCase());
-          if (!artists.some(x => x === wanted)) continue;
+        // OR within each field, AND across fields
+        if (state.artistSel.length) {
+          const rowArtists = splitMulti(val(r['artist_display_name'])).map(s => s.toLowerCase());
+          if (!state.artistSel.some(v => rowArtists.includes(v.toLowerCase()))) continue;
         }
-        if (state.classFilter) {
-          const wanted = state.classFilter.toLowerCase();
-          const classes = splitMulti(val(r['classification'])).map(s => s.toLowerCase());
-          if (!classes.some(x => x === wanted)) continue;
+        if (state.classSel.length) {
+          const rowClasses = splitMulti(val(r['classification'])).map(s => s.toLowerCase());
+          if (!state.classSel.some(v => rowClasses.includes(v.toLowerCase()))) continue;
         }
-        if (state.tagFilter) {
-          const wanted = state.tagFilter.toLowerCase();
-          const tags = splitMulti(val(r['tags'])).map(s => s.toLowerCase());
-          if (!tags.some(x => x === wanted)) continue;
+        if (state.tagSel.length) {
+          const rowTags = splitMulti(val(r['tags'])).map(s => s.toLowerCase());
+          if (!state.tagSel.some(v => rowTags.includes(v.toLowerCase()))) continue;
         }
 
         const b = num(r['object_begin_date']), e = num(r['object_end_date']);
