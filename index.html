@@ -3,21 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Light + Artist)</title>
+  <title>MET CSV Dashboard (Light + Artist + Multi)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
-      --bg:#f7fafc;
+      --bg:#f8fafc;
       --card:#ffffff;
       --muted:#64748b;
       --text:#0f172a;
       --accent:#2563eb;
+      --accent-2:#06b6d4;
+      --accent-3:#f97316;
+      --accent-4:#22c55e;
       --bad:#b91c1c;
       --border:#e5e7eb;
       --input:#ffffff;
       --input-border:#cbd5e1;
-      --btn:#f1f5f9;
-      --btn-hover:#e2e8f0;
+      --btn:#eef2ff;
+      --btn-hover:#e0e7ff;
+      --pill-bg:#eef6ff;
+      --pill-border:#c7ddff;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
@@ -31,13 +36,14 @@
     input[type="range"] { width: 100%; }
     .btn { cursor: pointer; background: var(--btn); color: var(--text); border: 1px solid var(--input-border); padding: 8px 12px; border-radius: 10px; }
     .btn:hover { background: var(--btn-hover); }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#f2f5fb; border:1px solid var(--border); margin-right:6px; color:#0f172a; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background: var(--pill-bg); border:1px solid var(--pill-border); margin:2px 6px 2px 0; color:#0f172a; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
     th { text-align: left; color: var(--muted); font-weight: 600; }
     .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0 24px; }
     canvas { width: 100% !important; height: 320px !important; }
     .err { color: var(--bad); white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .grid-badges { display:flex; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -169,8 +175,6 @@
             if (!res.data || !res.data.length) { status.textContent = 'No rows found.'; return; }
             const cols = res.meta && res.meta.fields ? res.meta.fields.map(c => c.trim()) : Object.keys(res.data[0]);
             const mapping = buildHeaderMapping(cols);
-            const missing = Object.keys(EXPECTED).filter(k => !(EXPECTED[k] in mapping.map));
-            if (missing.length) { /* don't block; just note */ console.warn('Missing columns:', missing); }
             state.rows = res.data.map(r => normalizeRow(r, mapping));
             state.columns = cols;
             status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns`;
@@ -188,7 +192,6 @@
 
     function normalizeRow(r, mapping) {
       const low = {}; for (const k in r) if (Object.prototype.hasOwnProperty.call(r,k)) low[k.toLowerCase()] = r[k];
-      // Canonicalized keys for our UI
       return {
         title: val(low[EXPECTED.title]),
         department: val(low[EXPECTED.department]),
@@ -200,7 +203,6 @@
         artist_nationality: val(low[EXPECTED.nationality]),
         artist_begin_date: num(low[EXPECTED.artist_begin]),
         artist_end_date: num(low[EXPECTED.artist_end]),
-        // keep all original fields (lowercased) so export keeps full data
         ...low
       };
     }
@@ -216,7 +218,9 @@
         const cl = val(r['classification']).toLowerCase();
         const a = val(r['artist_display_name']).toLowerCase();
         const n = val(r['artist_nationality']).toLowerCase();
-        if (query && !(t.includes(query) || d.includes(query) || c.includes(query) || cl.includes(query) || a.includes(query) || n.includes(query))) continue;
+        // Include multi-value splits in search (e.g., "A | B")
+        const fields = [t, d, c, cl, a, n].join(' | ');
+        if (query && !fields.includes(query)) continue;
 
         const b = num(r['object_begin_date']), e = num(r['object_end_date']);
         if (Number.isFinite(b) || Number.isFinite(e)) { const lo = Number.isFinite(b) ? b : e, hi = Number.isFinite(e) ? e : b; if (!(lo <= ymax && hi >= ymin)) continue; }
@@ -228,19 +232,18 @@
       renderDeptChart(filtered);
     }
 
+    // Render helpers -------------------------------------------------------
     function renderTable(rows) {
       const tbody = document.querySelector('#table tbody'); tbody.innerHTML = '';
       for (const r of rows) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHTML(val(r['title']))}</td>
-          <td>${escapeHTML(val(r['artist_display_name']))}</td>
-          <td>${escapeHTML(val(r['artist_nationality']))}</td>
-          <td><span class="pill">${escapeHTML(val(r['department']))}</span></td>
-          <td>${escapeHTML(val(r['classification']))}</td>
-          <td>${escapeHTML(num(r['object_begin_date']))}</td>
-          <td>${escapeHTML(num(r['object_end_date']))}</td>
-        `;
+        tr.appendChild(tdText(val(r['title'])));
+        tr.appendChild(tdText(val(r['artist_display_name'])));
+        tr.appendChild(tdBadges(splitMulti(val(r['artist_nationality']))));
+        tr.appendChild(tdBadges(splitMulti(val(r['department']))));
+        tr.appendChild(tdBadges(splitMulti(val(r['classification']))));
+        tr.appendChild(tdText(num(r['object_begin_date'])));
+        tr.appendChild(tdText(num(r['object_end_date'])));
         tbody.appendChild(tr);
       }
     }
@@ -248,23 +251,53 @@
     function renderDeptChart(rows) {
       const ctx = document.getElementById('deptChart').getContext('2d');
       const counts = new Map();
-      for (const r of rows) { const d = val(r['department']); counts.set(d, (counts.get(d) || 0) + 1); }
+      for (const r of rows) { const d = firstValue(splitMulti(val(r['department']))); counts.set(d, (counts.get(d) || 0) + 1); }
       const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a,b)=>b[1]-a[1]).slice(0,15);
       const labels = sorted.map(x=>x[0]); const data = sorted.map(x=>x[1]);
+
+      // Vibrant color palette
+      const palette = [
+        'rgba(37,99,235,0.7)','rgba(6,182,212,0.7)','rgba(249,115,22,0.7)','rgba(34,197,94,0.7)',
+        'rgba(139,92,246,0.7)','rgba(244,63,94,0.7)','rgba(234,179,8,0.7)','rgba(2,132,199,0.7)',
+        'rgba(16,185,129,0.7)','rgba(99,102,241,0.7)','rgba(20,184,166,0.7)','rgba(245,158,11,0.7)',
+        'rgba(59,130,246,0.7)','rgba(168,85,247,0.7)','rgba(236,72,153,0.7)'
+      ];
+      const borders = palette.map(c => c.replace('0.7','1'));
+
       if (window._deptChart) window._deptChart.destroy();
       window._deptChart = new Chart(ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Count', data }] },
+        data: { labels, datasets: [{ label: 'Count', data, backgroundColor: palette, borderColor: borders, borderWidth: 1 }] },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false,
           scales: { x: { ticks: { color: '#334155' } }, y: { ticks: { color: '#334155' } } },
           plugins: { legend: { labels: { color: '#334155' } } }
         }
       });
     }
 
-    // Helpers
+    // DOM & util -----------------------------------------------------------
+    function tdText(text) {
+      const td = document.createElement('td'); td.textContent = text==null? '' : String(text); return td;
+    }
+    function tdBadges(values) {
+      const td = document.createElement('td');
+      const wrap = document.createElement('div'); wrap.className = 'grid-badges';
+      for (const v of values) {
+        const s = v.trim(); if (!s) continue;
+        const span = document.createElement('span'); span.className = 'pill'; span.textContent = s;
+        wrap.appendChild(span);
+      }
+      td.appendChild(wrap); return td;
+    }
+    function splitMulti(value) {
+      if (value == null) return [];
+      const s = String(value);
+      return s.includes('|') ? s.split('|').map(x => x.trim()) : [s.trim()];
+    }
+    function firstValue(arr) { return (arr && arr.length) ? arr[0] : ''; }
+
+    // General helpers
     function num(v) { const n = Number(v); return Number.isFinite(n) ? n : NaN; }
     function val(v) { return (v === null || v === undefined) ? '' : String(v); }
     function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
