@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Light + Artist + Multi)</title>
+  <title>MET CSV Dashboard (Light + Artist + Stacked)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -36,14 +36,14 @@
     input[type="range"] { width: 100%; }
     .btn { cursor: pointer; background: var(--btn); color: var(--text); border: 1px solid var(--input-border); padding: 8px 12px; border-radius: 10px; }
     .btn:hover { background: var(--btn-hover); }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background: var(--pill-bg); border:1px solid var(--pill-border); margin:2px 6px 2px 0; color:#0f172a; font-size: 12px; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background: var(--pill-bg); border:1px solid var(--pill-border); color:#0f172a; font-size: 12px; }
+    .stack-col { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
     th { text-align: left; color: var(--muted); font-weight: 600; }
     .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0 24px; }
     canvas { width: 100% !important; height: 320px !important; }
     .err { color: var(--bad); white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .grid-badges { display:flex; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -218,7 +218,6 @@
         const cl = val(r['classification']).toLowerCase();
         const a = val(r['artist_display_name']).toLowerCase();
         const n = val(r['artist_nationality']).toLowerCase();
-        // Include multi-value splits in search (e.g., "A | B")
         const fields = [t, d, c, cl, a, n].join(' | ');
         if (query && !fields.includes(query)) continue;
 
@@ -239,9 +238,9 @@
         const tr = document.createElement('tr');
         tr.appendChild(tdText(val(r['title'])));
         tr.appendChild(tdText(val(r['artist_display_name'])));
-        tr.appendChild(tdBadges(splitMulti(val(r['artist_nationality']))));
-        tr.appendChild(tdBadges(splitMulti(val(r['department']))));
-        tr.appendChild(tdBadges(splitMulti(val(r['classification']))));
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_nationality']))));
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['department']))));
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['classification']))));
         tr.appendChild(tdText(num(r['object_begin_date'])));
         tr.appendChild(tdText(num(r['object_end_date'])));
         tbody.appendChild(tr);
@@ -255,7 +254,6 @@
       const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a,b)=>b[1]-a[1]).slice(0,15);
       const labels = sorted.map(x=>x[0]); const data = sorted.map(x=>x[1]);
 
-      // Vibrant color palette
       const palette = [
         'rgba(37,99,235,0.7)','rgba(6,182,212,0.7)','rgba(249,115,22,0.7)','rgba(34,197,94,0.7)',
         'rgba(139,92,246,0.7)','rgba(244,63,94,0.7)','rgba(234,179,8,0.7)','rgba(2,132,199,0.7)',
@@ -277,12 +275,10 @@
     }
 
     // DOM & util -----------------------------------------------------------
-    function tdText(text) {
-      const td = document.createElement('td'); td.textContent = text==null? '' : String(text); return td;
-    }
-    function tdBadges(values) {
+    function tdText(text) { const td = document.createElement('td'); td.textContent = text==null? '' : String(text); return td; }
+    function tdBadgesColumn(values) {
       const td = document.createElement('td');
-      const wrap = document.createElement('div'); wrap.className = 'grid-badges';
+      const wrap = document.createElement('div'); wrap.className = 'stack-col';
       for (const v of values) {
         const s = v.trim(); if (!s) continue;
         const span = document.createElement('span'); span.className = 'pill'; span.textContent = s;
@@ -290,11 +286,7 @@
       }
       td.appendChild(wrap); return td;
     }
-    function splitMulti(value) {
-      if (value == null) return [];
-      const s = String(value);
-      return s.includes('|') ? s.split('|').map(x => x.trim()) : [s.trim()];
-    }
+    function splitMulti(value) { if (value == null) return []; const s = String(value); return s.includes('|') ? s.split('|').map(x => x.trim()) : [s.trim()]; }
     function firstValue(arr) { return (arr && arr.length) ? arr[0] : ''; }
 
     // General helpers
