@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Light + Artists/Culture/Tags)</title>
+  <title>MET CSV Dashboard (Light + Artists/Culture/Tags • Fixed Badges)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -36,7 +36,7 @@
     input[type="range"] { width: 100%; }
     .btn { cursor: pointer; background: var(--btn); color: var(--text); border: 1px solid var(--input-border); padding: 8px 12px; border-radius: 10px; }
     .btn:hover { background: var(--btn-hover); }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background: var(--pill-bg); border:1px solid var(--pill-border); color:#0f172a; font-size: 12px; }
+    .pill { display:inline-block; padding: 4px 8px; border-radius: 6px; background: var(--pill-bg); border:1px solid var(--pill-border); color:#0f172a; font-size: 12px; line-height: 1.2; }
     .stack-col { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
@@ -242,12 +242,12 @@
       for (const r of rows) {
         const tr = document.createElement('tr');
         tr.appendChild(tdText(val(r['title'])));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_display_name']))));  // split artists
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_display_name']))));
         tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_nationality']))));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['culture']))));             // split culture
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['culture']))));
         tr.appendChild(tdBadgesColumn(splitMulti(val(r['department']))));
         tr.appendChild(tdBadgesColumn(splitMulti(val(r['classification']))));
-        tr.appendChild(tdBadgesColumn(splitMulti(val(r['tags']))));                // split tags
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['tags']))));
         tr.appendChild(tdText(num(r['object_begin_date'])));
         tr.appendChild(tdText(num(r['object_end_date'])));
         tbody.appendChild(tr);
@@ -260,7 +260,6 @@
       for (const r of rows) { const d = firstValue(splitMulti(val(r['department']))); counts.set(d, (counts.get(d) || 0) + 1); }
       const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a,b)=>b[1]-a[1]).slice(0,15);
       const labels = sorted.map(x=>x[0]); const data = sorted.map(x=>x[1]);
-
       const palette = [
         'rgba(37,99,235,0.7)','rgba(6,182,212,0.7)','rgba(249,115,22,0.7)','rgba(34,197,94,0.7)',
         'rgba(139,92,246,0.7)','rgba(244,63,94,0.7)','rgba(234,179,8,0.7)','rgba(2,132,199,0.7)',
@@ -268,7 +267,6 @@
         'rgba(59,130,246,0.7)','rgba(168,85,247,0.7)','rgba(236,72,153,0.7)'
       ];
       const borders = palette.map(c => c.replace('0.7','1'));
-
       if (window._deptChart) window._deptChart.destroy();
       window._deptChart = new Chart(ctx, {
         type: 'bar',
