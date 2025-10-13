@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Light + Artists/Culture/Tags • Ticked Sliders)</title>
+  <title>MET CSV Dashboard (Light • Evenly Spaced Ticks)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -47,7 +47,7 @@
 
     /* Ticked slider wrapper */
     .slider-block { display:grid; gap:6px; }
-    .ticks-wrap { position: relative; height: 28px; }
+    .ticks-wrap { position: relative; height: 26px; }
     .ticks-svg { position:absolute; inset:0; width:100%; height:100%; }
     .tick-line { stroke:#cbd5e1; stroke-width:1; }
     .tick-dot { fill:#94a3b8; }
@@ -164,7 +164,8 @@
       tags: 'tags'
     };
 
-    const TICKS = [-500, 0, 500, 1000, 1500, 1700, 1800, 1900, 2000, 2025];
+    // Fewer, evenly spaced ticks (including ends). Adjust count to taste.
+    const TICK_COUNT = 6;
 
     fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
     clearBtn.addEventListener('click', () => { q.value=''; yearMin.value='-600'; yearMax.value='2025'; yearMinVal.textContent='-600'; yearMaxVal.textContent='2025'; drawTicks(); if (state.rows.length) applyFilters(); });
@@ -182,6 +183,16 @@
       a.href = url; a.download = 'met_filtered.csv'; a.click(); URL.revokeObjectURL(url);
     });
 
+    function genEvenTicks(min, max, count) {
+      const ticks = [];
+      const steps = Math.max(1, count - 1);
+      for (let i = 0; i < count; i++) {
+        const v = min + (i * (max - min)) / steps;
+        ticks.push(Math.round(v));
+      }
+      return ticks;
+    }
+
     function drawTicks() {
       drawTicksFor('ticksMin', yearMin);
       drawTicksFor('ticksMax', yearMax);
@@ -189,12 +200,13 @@
 
     function drawTicksFor(svgId, inputEl) {
       const svg = document.getElementById(svgId);
-      const { min, max } = inputEl;
-      const lo = +min, hi = +max;
+      const lo = +inputEl.min, hi = +inputEl.max;
+      const ticks = genEvenTicks(lo, hi, TICK_COUNT);
       const W = svg.clientWidth || svg.parentElement.clientWidth || 300;
-      const H = svg.clientHeight || 28;
+      const H = svg.clientHeight || 26;
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.innerHTML = '';
+
       // base line
       const base = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       base.setAttribute('x1', 0); base.setAttribute('y1', H-10);
@@ -202,8 +214,7 @@
       base.setAttribute('class', 'tick-line');
       svg.appendChild(base);
 
-      for (const t of TICKS) {
-        if (t < lo || t > hi) continue;
+      for (const t of ticks) {
         const p = (t - lo) / (hi - lo);
         const x = Math.round(p * W);
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
