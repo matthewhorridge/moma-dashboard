@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Light + Artist + Stacked)</title>
+  <title>MET CSV Dashboard (Light + Artists/Culture/Tags)</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -65,7 +65,7 @@
       <aside class="card" style="position:sticky; top:76px; height:fit-content;">
         <div style="display:grid; gap:10px;">
           <div>
-            <div class="muted" style="font-size:12px; margin-bottom:6px;">Search (title / department / culture / classification / artist / nationality)</div>
+            <div class="muted" style="font-size:12px; margin-bottom:6px;">Search (title / department / classification / culture / artist / nationality / tags)</div>
             <input id="q" type="text" placeholder="Type to filter…" />
           </div>
           <div>
@@ -107,10 +107,12 @@
               <thead>
                 <tr>
                   <th>Title</th>
-                  <th>Artist</th>
+                  <th>Artist(s)</th>
                   <th>Nationality</th>
+                  <th>Culture</th>
                   <th>Department</th>
                   <th>Classification</th>
+                  <th>Tags</th>
                   <th>Begin</th>
                   <th>End</th>
                 </tr>
@@ -146,7 +148,8 @@
       artist: 'artist_display_name',
       nationality: 'artist_nationality',
       artist_begin: 'artist_begin_date',
-      artist_end: 'artist_end_date'
+      artist_end: 'artist_end_date',
+      tags: 'tags'
     };
 
     fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
@@ -203,6 +206,7 @@
         artist_nationality: val(low[EXPECTED.nationality]),
         artist_begin_date: num(low[EXPECTED.artist_begin]),
         artist_end_date: num(low[EXPECTED.artist_end]),
+        tags: val(low[EXPECTED.tags]),
         ...low
       };
     }
@@ -218,7 +222,8 @@
         const cl = val(r['classification']).toLowerCase();
         const a = val(r['artist_display_name']).toLowerCase();
         const n = val(r['artist_nationality']).toLowerCase();
-        const fields = [t, d, c, cl, a, n].join(' | ');
+        const tg = val(r['tags']).toLowerCase();
+        const fields = [t, d, c, cl, a, n, tg].join(' | ');
         if (query && !fields.includes(query)) continue;
 
         const b = num(r['object_begin_date']), e = num(r['object_end_date']);
@@ -237,10 +242,12 @@
       for (const r of rows) {
         const tr = document.createElement('tr');
         tr.appendChild(tdText(val(r['title'])));
-        tr.appendChild(tdText(val(r['artist_display_name'])));
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_display_name']))));  // split artists
         tr.appendChild(tdBadgesColumn(splitMulti(val(r['artist_nationality']))));
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['culture']))));             // split culture
         tr.appendChild(tdBadgesColumn(splitMulti(val(r['department']))));
         tr.appendChild(tdBadgesColumn(splitMulti(val(r['classification']))));
+        tr.appendChild(tdBadgesColumn(splitMulti(val(r['tags']))));                // split tags
         tr.appendChild(tdText(num(r['object_begin_date'])));
         tr.appendChild(tdText(num(r['object_end_date'])));
         tbody.appendChild(tr);
