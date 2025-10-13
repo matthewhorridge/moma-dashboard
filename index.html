@@ -3,25 +3,37 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET CSV Dashboard (Minimal v2)</title>
+  <title>MET CSV Dashboard (Light)</title>
   <link rel="icon" href="data:," />
   <style>
-    :root { --bg:#0b1020; --card:#131a2a; --muted:#7e8aa4; --text:#e7ecf6; --accent:#6aa8ff; --bad:#ff6a6a; }
+    :root {
+      --bg:#f7fafc;
+      --card:#ffffff;
+      --muted:#64748b;
+      --text:#0f172a;
+      --accent:#2563eb;
+      --bad:#b91c1c;
+      --border:#e5e7eb;
+      --input:#ffffff;
+      --input-border:#cbd5e1;
+      --btn:#f1f5f9;
+      --btn-hover:#e2e8f0;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
-    header { position: sticky; top:0; background: rgba(11,16,32,0.8); backdrop-filter: blur(6px); border-bottom: 1px solid #1e2943; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
+    header { position: sticky; top:0; background: rgba(255,255,255,0.9); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
     .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
     .row { display: grid; grid-template-columns: 1fr; gap: 16px; }
     @media (min-width: 1000px) { .row { grid-template-columns: 300px 1fr; } }
-    .card { background: var(--card); border: 1px solid #1e2943; border-radius: 14px; padding: 12px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
     .muted { color: var(--muted); }
-    input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a395f; background:#0f1526; color: var(--text); }
+    input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--input-border); background:var(--input); color: var(--text); }
     input[type="range"] { width: 100%; }
-    .btn { cursor: pointer; background: #182444; color: var(--text); border: 1px solid #2a395f; padding: 8px 12px; border-radius: 10px; }
-    .btn:hover { background: #21335e; }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#0f1b36; border:1px solid #223055; margin-right:6px; color:#cfe0ff; }
+    .btn { cursor: pointer; background: var(--btn); color: var(--text); border: 1px solid var(--input-border); padding: 8px 12px; border-radius: 10px; }
+    .btn:hover { background: var(--btn-hover); }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#f2f5fb; border:1px solid var(--border); margin-right:6px; color:#0f172a; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid #223055; vertical-align: top; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
     th { text-align: left; color: var(--muted); font-weight: 600; }
     .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0 24px; }
     canvas { width: 100% !important; height: 320px !important; }
@@ -111,61 +123,22 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <script>
-    const state = {
-      rows: [],
-      filtered: [],
-      columns: [],
-      chart: null
-    };
-
+    const state = { rows: [], filtered: [], columns: [], chart: null };
     const el = (id) => document.getElementById(id);
-    const fileInput = el('fileInput');
-    const q = el('q');
-    const yearMin = el('yearMin');
-    const yearMax = el('yearMax');
-    const yearMinVal = el('yearMinVal');
-    const yearMaxVal = el('yearMaxVal');
-    const status = el('status');
-    const errors = el('errors');
-    const count = el('count');
-    const exportBtn = el('exportBtn');
-    const clearBtn = el('clearBtn');
+    const fileInput = el('fileInput'), q = el('q'), yearMin = el('yearMin'), yearMax = el('yearMax');
+    const yearMinVal = el('yearMinVal'), yearMaxVal = el('yearMaxVal'), status = el('status'), errors = el('errors');
+    const count = el('count'), exportBtn = el('exportBtn'), clearBtn = el('clearBtn');
 
-    // Expected column names (lowercased)
     const EXPECTED = {
-      title: 'title',
-      department: 'department',
-      classification: 'classification',
-      culture: 'culture',
-      begin: 'object_begin_date',
-      end: 'object_end_date'
+      title: 'title', department: 'department', classification: 'classification', culture: 'culture',
+      begin: 'object_begin_date', end: 'object_end_date'
     };
 
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      errors.textContent = '';
-      loadCSV(file);
-    });
-
-    clearBtn.addEventListener('click', () => {
-      q.value = '';
-      yearMin.value = '-600'; yearMax.value = '2025';
-      yearMinVal.textContent = '-600'; yearMaxVal.textContent = '2025';
-      if (state.rows.length) { applyFilters(); }
-    });
-
+    fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
+    clearBtn.addEventListener('click', () => { q.value=''; yearMin.value='-600'; yearMax.value='2025'; yearMinVal.textContent='-600'; yearMaxVal.textContent='2025'; if (state.rows.length) applyFilters(); });
     q.addEventListener('input', debounce(applyFilters, 150));
-    yearMin.addEventListener('input', () => { 
-      if (+yearMin.value > +yearMax.value) yearMax.value = yearMin.value;
-      yearMinVal.textContent = yearMin.value; yearMaxVal.textContent = yearMax.value;
-      applyFilters();
-    });
-    yearMax.addEventListener('input', () => { 
-      if (+yearMax.value < +yearMin.value) yearMin.value = yearMax.value;
-      yearMinVal.textContent = yearMin.value; yearMaxVal.textContent = yearMax.value;
-      applyFilters();
-    });
+    yearMin.addEventListener('input', () => { if (+yearMin.value > +yearMax.value) yearMax.value = yearMin.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; applyFilters(); });
+    yearMax.addEventListener('input', () => { if (+yearMax.value < +yearMin.value) yearMin.value = yearMax.value; yearMinVal.textContent=yearMin.value; yearMaxVal.textContent=yearMax.value; applyFilters(); });
 
     exportBtn.addEventListener('click', () => {
       if (!state.filtered.length) return;
@@ -173,77 +146,43 @@
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'met_filtered.csv';
-      a.click();
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = 'met_filtered.csv'; a.click(); URL.revokeObjectURL(url);
     });
 
     function loadCSV(file) {
       status.textContent = 'Parsing…';
       try {
         Papa.parse(file, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          // worker: true, // Disabled to avoid file:// worker issues
+          header: true, dynamicTyping: true, skipEmptyLines: true,
           transformHeader: (h) => (h || '').toString().trim(),
           complete: (res) => {
-            if (res.errors && res.errors.length) {
-              errors.textContent = 'Parser warnings/errors:\n' + res.errors.slice(0,5).map(e => e.message + ' @ row ' + e.row).join('\n');
-            }
-            if (!res.data || !res.data.length) {
-              status.textContent = 'No rows found.';
-              return;
-            }
+            if (res.errors && res.errors.length) errors.textContent = 'Parser warnings/errors:\n' + res.errors.slice(0,5).map(e => e.message + ' @ row ' + e.row).join('\n');
+            if (!res.data || !res.data.length) { status.textContent = 'No rows found.'; return; }
             const cols = res.meta && res.meta.fields ? res.meta.fields.map(c => c.trim()) : Object.keys(res.data[0]);
             const mapping = buildHeaderMapping(cols);
-            if (!mapping.ok) {
-              errors.textContent = 'Missing expected columns: ' + mapping.missing.join(', ');
-            }
-            // Normalize rows to lowercase keys
+            if (!mapping.ok) { errors.textContent = 'Missing expected columns: ' + mapping.missing.join(', '); }
             state.rows = res.data.map(r => normalizeRow(r, mapping));
-            state.columns = cols; // keep original order for export
+            state.columns = cols;
             status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns`;
             applyFilters();
           },
-          error: (err) => {
-            console.error(err);
-            status.textContent = 'Error parsing CSV';
-            errors.textContent = String(err);
-          }
+          error: (err) => { console.error(err); status.textContent = 'Error parsing CSV'; errors.textContent = String(err); }
         });
-      } catch (ex) {
-        status.textContent = 'Error parsing CSV';
-        errors.textContent = String(ex && ex.stack || ex);
-      }
+      } catch (ex) { status.textContent = 'Error parsing CSV'; errors.textContent = String(ex && ex.stack || ex); }
     }
 
     function buildHeaderMapping(cols) {
-      const lower = cols.map(c => c.toLowerCase());
+      const map = {}; cols.forEach(c => map[c.toLowerCase()] = c);
       const need = [EXPECTED.title, EXPECTED.department, EXPECTED.classification, EXPECTED.culture, EXPECTED.begin, EXPECTED.end];
-      const map = {};
-      for (const c of cols) map[c.toLowerCase()] = c; // original name by lowercased
       const missing = need.filter(n => !(n in map));
       return { ok: missing.length === 0, missing, map };
     }
 
     function normalizeRow(r, mapping) {
-      // Access via original header names but prefer lowercased keys
-      const low = {};
-      for (const k in r) {
-        if (!Object.prototype.hasOwnProperty.call(r, k)) continue;
-        low[k.toLowerCase()] = r[k];
-      }
-      // Return an object with lowercased canonical keys (used by filters/table)
+      const low = {}; for (const k in r) if (Object.prototype.hasOwnProperty.call(r,k)) low[k.toLowerCase()] = r[k];
       return {
-        title: val(low[EXPECTED.title]),
-        department: val(low[EXPECTED.department]),
-        classification: val(low[EXPECTED.classification]),
-        culture: val(low[EXPECTED.culture]),
-        object_begin_date: num(low[EXPECTED.begin]),
-        object_end_date: num(low[EXPECTED.end]),
-        // spread original too (for export if needed)
+        title: val(low[EXPECTED.title]), department: val(low[EXPECTED.department]), classification: val(low[EXPECTED.classification]), culture: val(low[EXPECTED.culture]),
+        object_begin_date: num(low[EXPECTED.begin]), object_end_date: num(low[EXPECTED.end]),
         ...low
       };
     }
@@ -251,32 +190,22 @@
     function applyFilters() {
       const query = (q.value || '').toLowerCase().trim();
       const ymin = +yearMin.value, ymax = +yearMax.value;
-
       const filtered = [];
       for (const r of state.rows) {
-        const t = val(r['title']).toLowerCase();
-        const d = val(r['department']).toLowerCase();
-        const c = val(r['culture']).toLowerCase();
-        const cl = val(r['classification']).toLowerCase();
+        const t = val(r['title']).toLowerCase(), d = val(r['department']).toLowerCase(), c = val(r['culture']).toLowerCase(), cl = val(r['classification']).toLowerCase();
         if (query && !(t.includes(query) || d.includes(query) || c.includes(query) || cl.includes(query))) continue;
-
-        const b = num(r['object_begin_date']); const e = num(r['object_end_date']);
-        if (Number.isFinite(b) || Number.isFinite(e)) {
-          const lo = Number.isFinite(b) ? b : e;
-          const hi = Number.isFinite(e) ? e : b;
-          if (!(lo <= ymax && hi >= ymin)) continue;
-        }
+        const b = num(r['object_begin_date']), e = num(r['object_end_date']);
+        if (Number.isFinite(b) || Number.isFinite(e)) { const lo = Number.isFinite(b) ? b : e, hi = Number.isFinite(e) ? e : b; if (!(lo <= ymax && hi >= ymin)) continue; }
         filtered.push(r);
       }
       state.filtered = filtered;
-      count.textContent = filtered.length.toLocaleString();
+      el('count').textContent = filtered.length.toLocaleString();
       renderTable(filtered.slice(0, 50));
       renderDeptChart(filtered);
     }
 
     function renderTable(rows) {
-      const tbody = document.querySelector('#table tbody');
-      tbody.innerHTML = '';
+      const tbody = document.querySelector('#table tbody'); tbody.innerHTML = '';
       for (const r of rows) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -294,17 +223,9 @@
     function renderDeptChart(rows) {
       const ctx = document.getElementById('deptChart').getContext('2d');
       const counts = new Map();
-      for (const r of rows) {
-        const d = val(r['department']);
-        counts.set(d, (counts.get(d) || 0) + 1);
-      }
-      const sorted = Array.from(counts.entries())
-        .filter(([k]) => k) // drop blanks
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,15);
-      const labels = sorted.map(x=>x[0]);
-      const data = sorted.map(x=>x[1]);
-
+      for (const r of rows) { const d = val(r['department']); counts.set(d, (counts.get(d) || 0) + 1); }
+      const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a,b)=>b[1]-a[1]).slice(0,15);
+      const labels = sorted.map(x=>x[0]); const data = sorted.map(x=>x[1]);
       if (window._deptChart) window._deptChart.destroy();
       window._deptChart = new Chart(ctx, {
         type: 'bar',
@@ -312,38 +233,19 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: { x: { ticks: { color: '#cfe0ff' } }, y: { ticks: { color: '#cfe0ff' } } },
-          plugins: { legend: { labels: { color: '#cfe0ff' } } }
+          scales: { x: { ticks: { color: '#334155' } }, y: { ticks: { color: '#334155' } } },
+          plugins: { legend: { labels: { color: '#334155' } } }
         }
       });
     }
 
     // Helpers
-    function num(v) {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : NaN;
-    }
-    function val(v) {
-      return (v === null || v === undefined) ? '' : String(v);
-    }
+    function num(v) { const n = Number(v); return Number.isFinite(n) ? n : NaN; }
+    function val(v) { return (v === null || v === undefined) ? '' : String(v); }
     function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
     function escapeHTML(s) { return String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
-    function toCSV(rows, cols) {
-      if (!cols || !cols.length) cols = Object.keys(rows[0] || {});
-      const header = cols.join(',');
-      const lines = [header];
-      for (const r of rows) {
-        const line = cols.map(k => csvEscape(r[k]));
-        lines.push(line.join(','));
-      }
-      return lines.join('\n');
-    }
-    function csvEscape(v) {
-      if (v === null || v === undefined) return '';
-      const s = String(v);
-      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    }
+    function toCSV(rows, cols) { if (!cols || !cols.length) cols = Object.keys(rows[0] || {}); const header = cols.join(','); const lines = [header]; for (const r of rows) { const line = cols.map(k => csvEscape(r[k])); lines.push(line.join(',')); } return lines.join('\n'); }
+    function csvEscape(v) { if (v === null || v === undefined) return ''; const s = String(v); if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'; return s; }
   </script>
 </body>
 </html>
