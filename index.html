@@ -643,10 +643,27 @@
           let td = document.createElement('td');
           if (c.type === 'multi') {
             const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.gap='6px';
-            splitMulti(val(r[c.key])).forEach(s => {
-              const span = document.createElement('span'); span.className = 'pill'; span.textContent = s.trim();
-              if (span.textContent) wrap.appendChild(span);
-            });
+            const vals = splitMulti(val(r[c.key]));
+            const urls = (c.key === 'artist_display_name') ? splitMulti(val(r['artist_ulan_url'])) : [];
+            for (let i = 0; i < vals.length; i++) {
+              const s = vals[i].trim(); if (!s) continue;
+              const span = document.createElement('span'); span.className = 'pill';
+              if (c.key === 'artist_display_name' && urls.length) {
+                const url = urls[i] || urls[0] || '';
+                if (url && /^https?:\/\//i.test(url)) {
+                  const a = document.createElement('a');
+                  a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = s;
+                  a.style.textDecoration = 'none'; a.style.color = 'inherit';
+                  span.style.cursor = 'pointer';
+                  span.appendChild(a);
+                } else {
+                  span.textContent = s;
+                }
+              } else {
+                span.textContent = s;
+              }
+              if (span.textContent || span.querySelector('a')) wrap.appendChild(span);
+            }
             td.appendChild(wrap);
           } else {
             const v = c.type === 'num' ? num(r[c.key]) : val(r[c.key]);
