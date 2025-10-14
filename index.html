@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MET Dashboard — Sort • Paging • Columns • Sticky Header</title>
+  <title>MoMA NYC Artworks</title>
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,8 +49,45 @@
     .muted { color: var(--muted); }
     .input { width:100%; padding: 12px 12px 12px 40px; border-radius: 12px; border:1px solid var(--input-border); background:var(--input); transition: box-shadow .15s ease, border-color .15s ease; }
     .input:focus { outline:none; border-color: #93c5fd; box-shadow: var(--ring); }
-    .field { position:relative; }
-    .field svg { position:absolute; left:12px; top:50%; transform: translateY(-50%); opacity:.6; }
+   /* >>> REPLACE your current .field.with-actions / .field .actions rules with this <<< */
+
+/* Give the input room for the two buttons on the right */
+.field.with-actions .input {
+  padding-right: 120px; /* was ~104px; a little extra avoids wrap on narrow widths */
+}
+
+/* Pin the actions inside the field and center them vertically */
+.field { position: relative; }
+.field .actions {
+  position: absolute;
+  right: 8px;
+  top: 0;
+  bottom: 0;               /* stretch container full height of the input */
+  display: flex;
+  align-items: center;     /* perfect vertical centering */
+  gap: 6px;
+}
+
+/* Make the buttons a consistent size */
+.field .actions .btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;      /* tighter corners so they visually align with the input */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* (optional) ensure the search icon never pushes layout */
+.field svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+    
     input[type="range"] { width:100%; }
     .btn { cursor:pointer; background: var(--btn); border:1px solid var(--input-border); color:#0f172a; padding: 10px 14px; border-radius: 12px; font-weight:600; box-shadow: var(--shadow-sm); transition: transform .05s ease, box-shadow .15s ease, background .2s ease; }
     .btn:hover { background: var(--btn-hover); box-shadow: var(--shadow-md); }
@@ -114,8 +151,7 @@
       <div class="brand">
         <div class="logo">M</div>
         <div>
-          <div class="title">MET Dashboard</div>
-          <div class="subtitle">Client-only • Load <code>Artworks.csv</code> (MoMA)</div>
+          <div class="title">MoMA NYC Artworks</div>
         </div>
       </div>
       <div><input id="fileInput" type="file" accept=".csv,text/csv" class="btn" /></div>
@@ -178,27 +214,26 @@
 
           <div>
             <h3>Year range</h3>
-            <div style="display:grid; gap:10px;">
-              <div id="yearSlider"></div>
-              <div style="display:flex; gap:8px; align-items:center;">
+            <div style="display:grid; gap:10px; padding-top: 50px;">
+              <div id="yearSlider" style="padding-left: 30px; padding-right: 30px;"></div>
+              <div style="display:flex; gap:8px; align-items:center; padding-top: 10px;">
                 <label class="muted" style="font-size:12px;">From
                   <input id="yearMinBox" type="number" min="-600" max="2025" class="input" style="width:120px; padding:8px 10px; height:36px;" />
                 </label>
                 <label class="muted" style="font-size:12px;">To
                   <input id="yearMaxBox" type="number" min="-600" max="2025" class="input" style="width:120px; padding:8px 10px; height:36px;" />
                 </label>
-                <div class="muted" style="margin-left:auto; font-size:12px;"><span id="yearMinVal">-600</span> → <span id="yearMaxVal">2025</span></div>
+                <div class="muted" style="margin-left:auto; font-size:12px; padding-top: 50px;"><span id="yearMinVal">1900</span> → <span id="yearMaxVal">2025</span></div>
               </div>
               <div class="chips-row">
                 <button class="btn" data-range="all">All</button>
-                <button class="btn" data-range="-600,0">≤ 0</button>
                 <button class="btn" data-range="1400,1600">1400–1600</button>
                 <button class="btn" data-range="1600,1800">1600–1800</button>
                 <button class="btn" data-range="1800,1900">1800–1900</button>
                 <button class="btn" data-range="1900,1950">1900–1950</button>
                 <button class="btn" data-range="1950,2025">1950–2025</button>
               </div>
-              <input id="yearMin" type="hidden" value="-600" />
+              <input id="yearMin" type="hidden" value="1900" />
               <input id="yearMax" type="hidden" value="2025" />
             </div>
           </div>
@@ -700,14 +735,14 @@
     const yearMaxBox = document.getElementById('yearMaxBox');
 
     function yearLabel(y) { y = Math.round(+y); return (y < 0) ? `${Math.abs(y)} BCE` : `${y} CE`; }
-    function clamp(v) { v = Math.round(+v); if (!Number.isFinite(v)) return 0; return Math.max(-600, Math.min(2025, v)); }
+    function clamp(v) { v = Math.round(+v); if (!Number.isFinite(v)) return 0; return Math.max(1900, Math.min(2025, v)); }
 
     if (yearSlider && window.noUiSlider) {
       noUiSlider.create(yearSlider, {
-        start: [-600, 2025],
+        start: [1900, 2025],
         connect: true,
         step: 1,
-        range: { min: -600, max: 2025 },
+        range: { min: 1900, max: 2025 },
         tooltips: [ { to: yearLabel, from: Number }, { to: yearLabel, from: Number } ],
         pips: { mode: 'positions', values: [0, 20, 40, 60, 80, 100], density: 3, format: { to: (v)=>Math.round(v), from: Number } }
       });
@@ -743,7 +778,7 @@
       document.querySelectorAll('[data-range]').forEach(btn => {
         btn.addEventListener('click', () => {
           const val = btn.getAttribute('data-range');
-          if (val === 'all') { yearSlider.noUiSlider.set([-600, 2025]); }
+          if (val === 'all') { yearSlider.noUiSlider.set([1900, 2025]); }
           else {
             const [a,b] = val.split(',').map(Number);
             yearSlider.noUiSlider.set([clamp(a), clamp(b)]);
