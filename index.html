@@ -1348,7 +1348,7 @@
       if (window._deptChart) window._deptChart.destroy();
       window._deptChart = new Chart(ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Count', data, backgroundColor: palette, borderColor: borders, borderWidth: 1, borderRadius: 6 }] },
+        data: { labels, datasets: [{ label: 'CountX', data, backgroundColor: palette, borderColor: borders, borderWidth: 1, borderRadius: 6 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
           scales: {
@@ -1356,7 +1356,7 @@
             y: { ticks: { color: '#475569' }, grid: { color: 'rgba(148,163,184,0.2)' } }
           },
           plugins: {
-            legend: { labels: { color: '#0f172a' } },
+            legend: { display: false },
             tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', titleColor: '#fff', bodyColor: '#e2e8f0', borderColor: '#1f2937', borderWidth: 1 }
           }
         }
