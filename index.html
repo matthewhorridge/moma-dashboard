@@ -470,7 +470,7 @@
           <div class="title">MoMA NYC Artworks</div>
         </div>
       </div>
-      <div><input id="fileInput" type="file" accept=".csv,text/csv" class="btn" /></div>
+      <div><input id="fileInput" type="file" accept=".csv,.zip,text/csv" class="btn" /></div>
     </div>
   </header>
 
@@ -639,7 +639,8 @@
     </div>
 
     <div class="wrap" style="padding-bottom:28px;">
-      <div class="muted" style="text-align:center; font-size:12px;">This app was built by Matthew Horridge as a vibe coding experiment</div>
+      <div class="muted" style="text-align:center; font-size:12px;">This app was built by Matthew Horridge as a vibe
+        coding experiment</div>
     </div>
   </main>
 
@@ -659,15 +660,15 @@
       sortKey: 'title', sortDir: 'asc',
       page: 1, pageSize: 50,
       colDefs: [
-    { key: 'image_url',           label: 'Image',          visible: true, type: 'img'  },
-    { key: 'title',               label: 'Title',          visible: true, type: 'text' },
-    { key: 'artist_display_name', label: 'Artist(s)',      visible: true, type: 'multi'},
-    { key: 'artist_nationality',  label: 'Nationality',    visible: true, type: 'multi'},
-    { key: 'department',          label: 'Department',     visible: true, type: 'multi'},
-    { key: 'classification',      label: 'Classification', visible: true, type: 'multi'},
-    { key: 'medium',              label: 'Medium',         visible: true, type: 'multi'},
-    { key: 'date_text',           label: 'Date',           visible: true, type: 'date' } // ← NEW
-  ]
+        { key: 'image_url', label: 'Image', visible: true, type: 'img' },
+        { key: 'title', label: 'Title', visible: true, type: 'text' },
+        { key: 'artist_display_name', label: 'Artist(s)', visible: true, type: 'multi' },
+        { key: 'artist_nationality', label: 'Nationality', visible: true, type: 'multi' },
+        { key: 'department', label: 'Department', visible: true, type: 'multi' },
+        { key: 'classification', label: 'Classification', visible: true, type: 'multi' },
+        { key: 'medium', label: 'Medium', visible: true, type: 'multi' },
+        { key: 'date_text', label: 'Date', visible: true, type: 'date' } // ← NEW
+      ]
     };
     const el = (id) => document.getElementById(id);
 
@@ -690,13 +691,71 @@
     const colBtn = el('colBtn'), colPanel = el('colPanel'), colChecks = el('colChecks');
 
     // ---------- Events ----------
-    fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent = ''; loadCSV(file); });
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      errors.textContent = '';
+
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.zip')) {
+        status.textContent = 'Reading ZIP…';
+        try {
+          const jszip = new JSZip();
+          const zip = await jszip.loadAsync(file);
+          // Pick first .csv file inside the ZIP
+          const csvEntry = Object.keys(zip.files).find(k => k.toLowerCase().endsWith('.csv'));
+          if (!csvEntry) {
+            status.textContent = 'No CSV file found inside ZIP.';
+            return;
+          }
+          const csvText = await zip.files[csvEntry].async('string');
+          // Parse CSV text as if it were a normal file
+          Papa.parse(csvText, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+            transformHeader: (h) => (h || '').toString().trim(),
+            complete: (res) => {
+              if (res.errors && res.errors.length)
+                errors.textContent = 'Parser warnings/errors:\n' + res.errors.slice(0, 5)
+                  .map(e => e.message + ' @ row ' + e.row).join('\n');
+              if (!res.data || !res.data.length) {
+                status.textContent = 'No rows found in CSV.';
+                return;
+              }
+              const cols = res.meta?.fields?.map(c => c.trim()) || Object.keys(res.data[0]);
+              state.rows = res.data.map(r => normalizeRow(r));
+              state.columns = cols;
+              buildIndexes(state.rows);
+              status.textContent = `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns (from ZIP)`;
+              applyFilters();
+            },
+            error: (err) => {
+              console.error(err);
+              status.textContent = 'Error parsing CSV from ZIP';
+              errors.textContent = String(err);
+            }
+          });
+        } catch (ex) {
+          console.error(ex);
+          status.textContent = 'Error reading ZIP file.';
+          errors.textContent = String(ex && ex.stack || ex);
+        }
+      } else {
+        // Fall back to plain CSV
+        loadCSV(file);
+      }
+    });
+
+
     clearBtn.addEventListener('click', () => {
       q.value = '';
       setSelections('artist', []); setSelections('class', []); setSelections('tags', []);
       state.page = 1; state.sortKey = 'title'; state.sortDir = 'asc';
       if (state.rows.length) applyFilters();
     });
+
+
     q.addEventListener('input', debounce(() => { state.page = 1; applyFilters(); }, 150));
 
     rowsPerPage.addEventListener('change', () => { state.pageSize = +rowsPerPage.value; state.page = 1; renderPaged(); });
@@ -1022,40 +1081,40 @@
 
 
     function sortRows(rows, key, dir) {
-  const def = state.colDefs.find(c => c.key === key) || { type: 'text' };
+      const def = state.colDefs.find(c => c.key === key) || { type: 'text' };
 
-  const firstYear = (row) => {
-    const rng = getRowYearRange(row);       // uses Date text first, then Begin/End
-    if (!rng) return Infinity;              // unknown dates sort last
-    return rng[0];                          // sort by start year
-  };
+      const firstYear = (row) => {
+        const rng = getRowYearRange(row);       // uses Date text first, then Begin/End
+        if (!rng) return Infinity;              // unknown dates sort last
+        return rng[0];                          // sort by start year
+      };
 
-  const multival = (v) => splitMulti(val(v))[0] || ''; // first value if multi
+      const multival = (v) => splitMulti(val(v))[0] || ''; // first value if multi
 
-  const cmp = (a, b) => {
-    let va, vb;
+      const cmp = (a, b) => {
+        let va, vb;
 
-    if (def.type === 'num') {
-      va = Number(a[key]); vb = Number(b[key]);
-      va = Number.isFinite(va) ? va : NaN;
-      vb = Number.isFinite(vb) ? vb : NaN;
-    } else if (def.type === 'date') {
-      va = firstYear(a);
-      vb = firstYear(b);
-    } else {
-      va = multival(a[key]).toLowerCase();
-      vb = multival(b[key]).toLowerCase();
+        if (def.type === 'num') {
+          va = Number(a[key]); vb = Number(b[key]);
+          va = Number.isFinite(va) ? va : NaN;
+          vb = Number.isFinite(vb) ? vb : NaN;
+        } else if (def.type === 'date') {
+          va = firstYear(a);
+          vb = firstYear(b);
+        } else {
+          va = multival(a[key]).toLowerCase();
+          vb = multival(b[key]).toLowerCase();
+        }
+
+        if ((Number.isNaN?.(va) && Number.isNaN?.(vb)) || va === vb) return 0;
+        if (Number.isNaN?.(va)) return 1;
+        if (Number.isNaN?.(vb)) return -1;
+        return va < vb ? -1 : 1;
+      };
+
+      const sorted = rows.slice().sort(cmp);
+      return dir === 'asc' ? sorted : sorted.reverse();
     }
-
-    if ((Number.isNaN?.(va) && Number.isNaN?.(vb)) || va === vb) return 0;
-    if (Number.isNaN?.(va)) return 1;
-    if (Number.isNaN?.(vb)) return -1;
-    return va < vb ? -1 : 1;
-  };
-
-  const sorted = rows.slice().sort(cmp);
-  return dir === 'asc' ? sorted : sorted.reverse();
-}
 
     function renderTableHeader() {
       const theadRow = document.getElementById('theadRow');
@@ -1282,6 +1341,8 @@
       state.tagIndex = Array.from(tSet).sort((a, b) => a.localeCompare(b));
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
 </body>
 
 </html>
