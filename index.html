@@ -584,8 +584,8 @@
         <div class="card">
           <div style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
             <div>
-              <h3 style="margin:0;">Objects by Department</h3>
-              <div class="muted" style="font-size:12px;">Top 15 departments in the filtered set</div>
+              <h3 style="margin:0;">Classifications</h3>
+              <div class="muted" style="font-size:12px;">Top 15 classifications in the filtered set</div>
             </div>
             <div class="muted" style="font-size:12px;"><span id="count" style="font-weight:700; color:#111827;">0</span>
               results</div>
@@ -661,16 +661,15 @@
       sortKey: 'title', sortDir: 'asc',
       page: 1, pageSize: 50,
       colDefs: [
-        { key: 'image_url', label: 'Image', visible: true, type: 'img' },
-        { key: 'title', label: 'Title', visible: true, type: 'text' },
-        { key: 'artist_display_name', label: 'Artist(s)', visible: true, type: 'multi' },
-        { key: 'artist_nationality', label: 'Nationality', visible: true, type: 'multi' },
-        { key: 'department', label: 'Department', visible: true, type: 'multi' },
-        { key: 'classification', label: 'Classification', visible: true, type: 'multi' },
-        { key: 'medium', label: 'Medium', visible: true, type: 'multi' },
-        { key: 'object_begin_date', label: 'Begin', visible: true, type: 'num' },
-        { key: 'object_end_date', label: 'End', visible: true, type: 'num' }
-      ]
+    { key: 'image_url',           label: 'Image',          visible: true, type: 'img'  },
+    { key: 'title',               label: 'Title',          visible: true, type: 'text' },
+    { key: 'artist_display_name', label: 'Artist(s)',      visible: true, type: 'multi'},
+    { key: 'artist_nationality',  label: 'Nationality',    visible: true, type: 'multi'},
+    { key: 'department',          label: 'Department',     visible: true, type: 'multi'},
+    { key: 'classification',      label: 'Classification', visible: true, type: 'multi'},
+    { key: 'medium',              label: 'Medium',         visible: true, type: 'multi'},
+    { key: 'date_text',           label: 'Date',           visible: true, type: 'date' } // ← NEW
+  ]
     };
     const el = (id) => document.getElementById(id);
 
@@ -1025,20 +1024,40 @@
 
 
     function sortRows(rows, key, dir) {
-      const def = state.colDefs.find(c => c.key === key) || { type: 'text' };
-      const multival = (v) => splitMulti(val(v))[0] || ''; // first value if multi
-      const cmp = (a, b) => {
-        let va = a[key], vb = b[key];
-        if (def.type === 'num') { va = Number(va); vb = Number(vb); va = Number.isFinite(va) ? va : NaN; vb = Number.isFinite(vb) ? vb : NaN; }
-        else { va = multival(va).toLowerCase(); vb = multival(vb).toLowerCase(); }
-        if (va === vb || (Number.isNaN(va) && Number.isNaN(vb))) return 0;
-        if (Number.isNaN(va)) return 1;
-        if (Number.isNaN(vb)) return -1;
-        return va < vb ? -1 : 1;
-      };
-      const sorted = rows.slice().sort(cmp);
-      return dir === 'asc' ? sorted : sorted.reverse();
+  const def = state.colDefs.find(c => c.key === key) || { type: 'text' };
+
+  const firstYear = (row) => {
+    const rng = getRowYearRange(row);       // uses Date text first, then Begin/End
+    if (!rng) return Infinity;              // unknown dates sort last
+    return rng[0];                          // sort by start year
+  };
+
+  const multival = (v) => splitMulti(val(v))[0] || ''; // first value if multi
+
+  const cmp = (a, b) => {
+    let va, vb;
+
+    if (def.type === 'num') {
+      va = Number(a[key]); vb = Number(b[key]);
+      va = Number.isFinite(va) ? va : NaN;
+      vb = Number.isFinite(vb) ? vb : NaN;
+    } else if (def.type === 'date') {
+      va = firstYear(a);
+      vb = firstYear(b);
+    } else {
+      va = multival(a[key]).toLowerCase();
+      vb = multival(b[key]).toLowerCase();
     }
+
+    if ((Number.isNaN?.(va) && Number.isNaN?.(vb)) || va === vb) return 0;
+    if (Number.isNaN?.(va)) return 1;
+    if (Number.isNaN?.(vb)) return -1;
+    return va < vb ? -1 : 1;
+  };
+
+  const sorted = rows.slice().sort(cmp);
+  return dir === 'asc' ? sorted : sorted.reverse();
+}
 
     function renderTableHeader() {
       const theadRow = document.getElementById('theadRow');
