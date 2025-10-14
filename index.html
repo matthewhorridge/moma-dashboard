@@ -588,7 +588,7 @@
         <div class="card">
           <div style="display:flex; align-items:center; gap:10px; justify-content:space-between;">
             <div>
-              <h3 style="margin:0;">Classifications</h3>
+              <h3 id="chartTitle" style="margin:0;">Classifications</h3>
               <div class="muted" style="font-size:12px;">Top 15 classifications in the filtered set</div>
             </div>
             <div class="muted" style="font-size:12px;"><span id="count" style="font-weight:700; color:#111827;">0</span>
@@ -863,6 +863,17 @@
     document.addEventListener('click', (e) => {
       if (!colPanel.contains(e.target) && e.target !== colBtn) colPanel.hidden = true;
     });
+
+    // Auto-load dataset from URL flag: ?load=artists
+    (function () {
+      const sp = new URLSearchParams(location.search);
+      const loadFlag = (sp.get('load') || '').toLowerCase();
+      if (loadFlag === 'artists') {
+        // File lives next to index.html (case-sensitive on GitHub Pages)
+        loadZipFromSameDir();
+      }
+    })();
+
 
     function renderColumnPicker() {
       colChecks.innerHTML = '';
@@ -1307,7 +1318,24 @@
     function renderDeptChart(rows) {
       const ctx = document.getElementById('deptChart').getContext('2d');
       const counts = new Map();
-      for (const r of rows) { const d = firstValue(splitMulti(r.classification)); counts.set(d, (counts.get(d) || 0) + 1); }
+      
+      if(state.classSel.length > 0) {
+          el('chartTitle').innerText = "Media";
+        }
+        else {
+          el('chartTitle').innerText = "Classifications"
+       }
+      
+      for (const r of rows) { 
+        let facet = r.classification;
+        if(state.classSel.length > 0) {
+          facet = r.medium;
+        }
+        else {
+          facet = r.classification;
+        }
+        const d = firstValue(splitMulti(facet)); counts.set(d, (counts.get(d) || 0) + 1); 
+      }
       const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a, b) => b[1] - a[1]).slice(0, 15);
       const labels = sorted.map(x => x[0]); const data = sorted.map(x => x[1]);
       const palette = [
@@ -1462,15 +1490,6 @@
       loadZipFromSameDir();
     });
 
-      (function () {
-        const sp = new URLSearchParams(location.search);
-        const loadFlag = (sp.get('load') || '').toLowerCase();
-        if (loadFlag) {
-          // Relative path next to index.html
-          loadZipFromSameDir();
-        }
-      })();
-
     async function loadZipFromSameDir() {
       const status = document.getElementById('status');
       const errors = document.getElementById('errors');
@@ -1531,6 +1550,17 @@
         errors.textContent = String(ex && ex.message ? ex.message : ex);
       }
     }
+  </script>
+
+  <script>
+      (function () {
+        const sp = new URLSearchParams(location.search);
+        const loadFlag = (sp.get('load') || '').toLowerCase();
+        if (loadFlag) {
+          // Relative path next to index.html
+          loadZipFromSameDir();
+        }
+      })();
   </script>
 
 </body>
