@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.css">
   <style>
     :root {
       --bg: #f5f7fb;
@@ -116,6 +117,17 @@
     .field .actions .btn { height: 32px; padding: 0 12px; display:inline-flex; align-items:center; justify-content:center; }
     .field svg { height: 18px; width: 18px; }
 
+
+    /* noUiSlider theming */
+    .noUi-target { box-shadow: var(--shadow-sm); border:1px solid var(--input-border); border-radius: 10px; background:#fff; }
+    .noUi-connect { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+    .noUi-horizontal { height: 10px; }
+    .noUi-handle { width: 18px; height: 18px; border-radius: 9px; box-shadow: var(--shadow-sm); border:1px solid #93c5fd; }
+    .noUi-handle::before, .noUi-handle::after { display:none; }
+    .noUi-pips-horizontal { padding-top: 6px; color:#667085; }
+    .noUi-value { font-size: 10px; }
+    .noUi-marker { background:#d0d5dd; }
+    
 </style>
 </head>
 <body>
@@ -186,18 +198,35 @@
             <div id="tagsChips" class="chips-row" style="display:none;"></div>
           </div>
 
+          
           <div>
             <h3>Year range</h3>
-            <div class="slider-block">
-              <input id="yearMin" type="range" min="-600" max="2025" value="-600" />
-              <div class="ticks-wrap"><svg id="ticksMin" class="ticks-svg"></svg></div>
+            <div style="display:grid; gap:10px;">
+              <div id="yearSlider"></div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <label class="muted" style="font-size:12px;">From
+                  <input id="yearMinBox" type="number" min="-600" max="2025" class="input" style="width:120px; padding:8px 10px; height:36px;" />
+                </label>
+                <label class="muted" style="font-size:12px;">To
+                  <input id="yearMaxBox" type="number" min="-600" max="2025" class="input" style="width:120px; padding:8px 10px; height:36px;" />
+                </label>
+                <div class="muted" style="margin-left:auto; font-size:12px;"><span id="yearMinVal">-600</span> → <span id="yearMaxVal">2025</span></div>
+              </div>
+              <div class="chips-row">
+                <button class="btn" data-range="all">All</button>
+                <button class="btn" data-range="-600,0">≤ 0</button>
+                <button class="btn" data-range="1400,1600">1400–1600</button>
+                <button class="btn" data-range="1600,1800">1600–1800</button>
+                <button class="btn" data-range="1800,1900">1800–1900</button>
+                <button class="btn" data-range="1900,1950">1900–1950</button>
+                <button class="btn" data-range="1950,2025">1950–2025</button>
+              </div>
+              <!-- Hidden inputs to keep code paths stable -->
+              <input id="yearMin" type="hidden" value="-600" />
+              <input id="yearMax" type="hidden" value="2025" />
             </div>
-            <div class="slider-block">
-              <input id="yearMax" type="range" min="-600" max="2025" value="2025" />
-              <div class="ticks-wrap"><svg id="ticksMax" class="ticks-svg"></svg></div>
-            </div>
-            <div class="muted"><span id="yearMinVal">-600</span> → <span id="yearMaxVal">2025</span></div>
           </div>
+              
 
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button id="clearBtn" class="btn">Clear</button>
@@ -269,6 +298,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.js"></script>
 
   <script>
     Chart.defaults.font.family = "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
@@ -747,6 +777,73 @@
 
     // initial ticks
     drawTicks();
+
+    // --- Year slider (noUiSlider) ---
+    const yearSlider = document.getElementById('yearSlider');
+    const yearMinBox = document.getElementById('yearMinBox');
+    const yearMaxBox = document.getElementById('yearMaxBox');
+
+    function yearLabel(y) { y = Math.round(+y); return (y < 0) ? `${Math.abs(y)} BCE` : `${y} CE`; }
+    function clamp(v) { v = Math.round(+v); if (!Number.isFinite(v)) return 0; return Math.max(-600, Math.min(2025, v)); }
+
+    if (yearSlider && window.noUiSlider) {
+      noUiSlider.create(yearSlider, {
+        start: [-600, 2025],
+        connect: true,
+        step: 1,
+        range: { min: -600, max: 2025 },
+        tooltips: [ { to: yearLabel, from: Number }, { to: yearLabel, from: Number } ],
+        pips: { mode: 'positions', values: [0, 20, 40, 60, 80, 100], density: 3, format: { to: (v)=>Math.round(v), from: Number } }
+      });
+
+      const hiddenMin = document.getElementById('yearMin');
+      const hiddenMax = document.getElementById('yearMax');
+      const yrMinVal = document.getElementById('yearMinVal');
+      const yrMaxVal = document.getElementById('yearMaxVal');
+
+      // On slider update, reflect in hidden inputs, numeric boxes, and labels
+      yearSlider.noUiSlider.on('update', (vals) => {
+        const a = clamp(vals[0]), b = clamp(vals[1]);
+        if (hiddenMin) hiddenMin.value = String(a);
+        if (hiddenMax) hiddenMax.value = String(b);
+        if (yearMinBox) yearMinBox.value = String(a);
+        if (yearMaxBox) yearMaxBox.value = String(b);
+        if (yrMinVal) yrMinVal.textContent = String(a);
+        if (yrMaxVal) yrMaxVal.textContent = String(b);
+      });
+
+      // On change, re-apply filters
+      yearSlider.noUiSlider.on('change', () => { state.page = 1; applyFilters(); });
+
+      // Numeric inputs drive slider
+      function setFromBoxes() {
+        const a = clamp(yearMinBox.value), b = clamp(yearMaxBox.value);
+        const lo = Math.min(a,b), hi = Math.max(a,b);
+        yearSlider.noUiSlider.set([lo, hi]);
+        state.page = 1; applyFilters();
+      }
+      ['change','blur','keydown'].forEach(evt => {
+        yearMinBox.addEventListener(evt, (e)=>{ if (evt!=='keydown' || e.key==='Enter') setFromBoxes(); });
+        yearMaxBox.addEventListener(evt, (e)=>{ if (evt!=='keydown' || e.key==='Enter') setFromBoxes(); });
+      });
+
+      // Presets
+      document.querySelectorAll('[data-range]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.getAttribute('data-range');
+          if (val === 'all') { yearSlider.noUiSlider.set([-600, 2025]); }
+          else {
+            const [a,b] = val.split(',').map(Number);
+            yearSlider.noUiSlider.set([clamp(a), clamp(b)]);
+          }
+          state.page = 1; applyFilters();
+        });
+      });
+    }
+
+    // Disable legacy tick drawing (no longer used)
+    function drawTicks() {}
+    
   </script>
 </body>
 </html>
