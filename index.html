@@ -678,6 +678,96 @@
     };
     const el = (id) => document.getElementById(id);
 
+    // ---- URL <-> state sync helpers ----
+    const urlSync = {
+      encArr: (arr) => (arr || []).map(encodeURIComponent).join(','),
+      decArr: (s) => (s ? s.split(',').map(decodeURIComponent).filter(Boolean) : []),
+
+      // Build a query string from current UI+state
+      buildQuery() {
+        const params = new URLSearchParams();
+
+        // text query
+        if (q.value.trim()) params.set('q', q.value.trim());
+
+        // multi selects
+        if (state.artistSel.length) params.set('artists', this.encArr(state.artistSel));
+        if (state.classSel.length) params.set('classes', this.encArr(state.classSel));
+        if (state.tagSel.length) params.set('tags', this.encArr(state.tagSel));
+
+        // year range
+        const yMin = document.getElementById('yearMin')?.value;
+        const yMax = document.getElementById('yearMax')?.value;
+        if (yMin) params.set('ymin', yMin);
+        if (yMax) params.set('ymax', yMax);
+
+        // paging + size
+        params.set('page', String(state.page || 1));
+        params.set('pageSize', String(state.pageSize || 50));
+
+        // sorting
+        params.set('sortKey', state.sortKey || 'title');
+        params.set('sortDir', state.sortDir || 'asc');
+
+        // visible columns (optional but nice)
+        const vis = state.colDefs.filter(c => c.visible).map(c => c.key);
+        params.set('cols', this.encArr(vis));
+
+        return params.toString();
+      },
+
+      // Write the current filters to the URL (no history spam)
+      updateURL: debounce(function () {
+        const qs = urlSync.buildQuery();
+        const newUrl = `${location.pathname}${qs ? '?' + qs : ''}${location.hash || ''}`;
+        history.replaceState(null, '', newUrl);
+      }, 150),
+
+      // Read filters from URL and apply to UI/state
+      applyFromURL() {
+        const sp = new URLSearchParams(location.search);
+
+        // text
+        const qv = sp.get('q') || '';
+        q.value = qv;
+
+        // multi
+        setSelections('artist', urlSync.decArr(sp.get('artists')));
+        setSelections('class', urlSync.decArr(sp.get('classes')));
+        setSelections('tags', urlSync.decArr(sp.get('tags')));
+
+        // year
+        const ymin = sp.get('ymin'), ymax = sp.get('ymax');
+        if (ymin && ymax && window.yearSlider?.noUiSlider) {
+          const lo = Math.max(1900, Math.min(2025, +ymin));
+          const hi = Math.max(1900, Math.min(2025, +ymax));
+          yearSlider.noUiSlider.set([Math.min(lo, hi), Math.max(lo, hi)]);
+        }
+
+        // page size
+        const ps = +(sp.get('pageSize') || state.pageSize);
+        if (!Number.isNaN(ps)) {
+          state.pageSize = ps;
+          if (rowsPerPage) rowsPerPage.value = String(ps);
+        }
+
+        // sort
+        state.sortKey = sp.get('sortKey') || state.sortKey;
+        state.sortDir = (sp.get('sortDir') === 'desc') ? 'desc' : 'asc';
+
+        // visible columns (optional)
+        const cols = urlSync.decArr(sp.get('cols'));
+        if (cols.length) {
+          for (const def of state.colDefs) def.visible = cols.includes(def.key);
+        }
+
+        // page
+        const p = +(sp.get('page') || 1);
+        state.page = Number.isFinite(p) && p >= 1 ? p : 1;
+      }
+    };
+
+
     // Sidebar elements
     const fileInput = el('fileInput'), q = el('q'), yearMin = el('yearMin'), yearMax = el('yearMax');
     const yearMinVal = el('yearMinVal'), yearMaxVal = el('yearMaxVal'), status = el('status'), errors = el('errors');
@@ -758,11 +848,12 @@
       q.value = '';
       setSelections('artist', []); setSelections('class', []); setSelections('tags', []);
       state.page = 1; state.sortKey = 'title'; state.sortDir = 'asc';
-      if (state.rows.length) applyFilters();
+      if (state.rows.length) applyFilters(); urlSync.updateURL();
     });
 
 
-    q.addEventListener('input', debounce(() => { state.page = 1; applyFilters(); }, 150));
+    q.addEventListener('input', debounce(() => { state.page = 1; applyFilters(); urlSync.updateURL(); }, 150));
+
 
     rowsPerPage.addEventListener('change', () => { state.pageSize = +rowsPerPage.value; state.page = 1; renderPaged(); });
     prevPage.addEventListener('click', () => { if (state.page > 1) { state.page--; renderPaged(); } });
@@ -815,7 +906,7 @@
       else if (e.key === 'Enter') {
         e.preventDefault();
         const value = cur >= 0 ? opts[cur].dataset.value : inputEl.value.trim();
-        if (value) { addSelection(kind, value); inputEl.value = ''; showList(kind, ''); state.page = 1; applyFilters(); }
+        if (value) { addSelection(kind, value); inputEl.value = ''; showList(kind, ''); state.page = 1; applyFilters(); urlSync.updateURL(); }
       } else if (e.key === 'Escape') { hideList(kind); }
     }
 
@@ -853,18 +944,23 @@
       if (kind === 'class') state.classSel = uniq;
       if (kind === 'tags') state.tagSel = uniq;
       renderChips(kind);
+      urlSync.updateURL();
     }
     function addSelection(kind, value) {
       const v = String(value).trim(); if (!v) return;
       if (kind === 'artist') setSelections('artist', [...state.artistSel, v]);
       if (kind === 'class') setSelections('class', [...state.classSel, v]);
       if (kind === 'tags') setSelections('tags', [...state.tagSel, v]);
+      urlSync.updateURL();
+
     }
     function removeSelection(kind, value) {
       if (kind === 'artist') setSelections('artist', state.artistSel.filter(x => x !== value));
       if (kind === 'class') setSelections('class', state.classSel.filter(x => x !== value));
       if (kind === 'tags') setSelections('tags', state.tagSel.filter(x => x !== value));
       state.page = 1; applyFilters();
+      urlSync.updateURL();
+
     }
 
     function renderChips(kind) {
@@ -1301,13 +1397,16 @@
         if (yrMaxVal) yrMaxVal.textContent = String(b);
       });
 
-      yearSlider.noUiSlider.on('change', () => { state.page = 1; applyFilters(); });
+      yearSlider.noUiSlider.on('change', () => { state.page = 1; applyFilters(); urlSync.updateURL(); });
+
 
       function setFromBoxes() {
         const a = clamp(yearMinBox.value), b = clamp(yearMaxBox.value);
         const lo = Math.min(a, b), hi = Math.max(a, b);
         yearSlider.noUiSlider.set([lo, hi]);
-        state.page = 1; applyFilters();
+        state.page = 1; 
+        applyFilters();
+        urlSync.updateURL();
       }
       ['change', 'blur', 'keydown'].forEach(evt => {
         yearMinBox.addEventListener(evt, (e) => { if (evt !== 'keydown' || e.key === 'Enter') setFromBoxes(); });
@@ -1325,7 +1424,16 @@
           state.page = 1; applyFilters();
         });
       });
+
+      // Read filters from URL and render
+      urlSync.applyFromURL();
+      applyFilters();       // will render with URL-provided filters
+      urlSync.updateURL();  // normalize URL (e.g., fill defaults)
+
+
     }
+
+
   </script>
   <script>
     /* ---- ensure buildIndexes exists before loadCSV calls it ---- */
