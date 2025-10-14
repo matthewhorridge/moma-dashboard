@@ -864,17 +864,6 @@
       if (!colPanel.contains(e.target) && e.target !== colBtn) colPanel.hidden = true;
     });
 
-    // Auto-load dataset from URL flag: ?load=artists
-    (function () {
-      const sp = new URLSearchParams(location.search);
-      const loadFlag = (sp.get('load') || '').toLowerCase();
-      if (loadFlag === 'artists') {
-        // File lives next to index.html (case-sensitive on GitHub Pages)
-        loadZipFromSameDir();
-      }
-    })();
-
-
     function renderColumnPicker() {
       colChecks.innerHTML = '';
       for (const c of state.colDefs) {
