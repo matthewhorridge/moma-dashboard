@@ -470,7 +470,11 @@
           <div class="title">MoMA NYC Artworks</div>
         </div>
       </div>
-      <div><input id="fileInput" type="file" accept=".csv,.zip,text/csv" class="btn" /></div>
+      <div>
+        <a id="loadZip" href="#" class="btn">Load sample data</a>
+        or
+        <input id="fileInput" type="file" accept=".csv,.zip,text/csv" class="btn" />
+      </div>
     </div>
   </header>
 
@@ -1342,6 +1346,74 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    // Click handler for the bookmark/button
+    document.getElementById('loadZip')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadZipFromSameDir();
+    });
+
+    async function loadZipFromSameDir() {
+      const status = document.getElementById('status');
+      const errors = document.getElementById('errors');
+      try {
+        errors.textContent = '';
+        if (status) status.textContent = 'Downloading Artworks.csv.zip…';
+
+        // NOTE: must be served over http(s); fetch will not work from file://
+        const resp = await fetch('./Artworks.csv.zip', { cache: 'no-cache' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status} for Artworks.csv.zip`);
+        const buf = await resp.arrayBuffer();
+
+        if (status) status.textContent = 'Unzipping…';
+        const zip = await JSZip.loadAsync(buf);
+
+        // Prefer a file named Artworks.csv; otherwise first .csv we find
+        let entryName = Object.keys(zip.files).find(k => /(^|\/)Artworks\.csv$/i.test(k));
+        if (!entryName) {
+          entryName = Object.keys(zip.files).find(k => k.toLowerCase().endsWith('.csv'));
+        }
+        if (!entryName) throw new Error('No .csv file found inside ZIP.');
+
+        const csvText = await zip.files[entryName].async('string');
+
+        if (status) status.textContent = 'Parsing CSV…';
+        Papa.parse(csvText, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          transformHeader: (h) => (h || '').toString().trim(),
+          complete: (res) => {
+            if (res.errors && res.errors.length) {
+              errors.textContent = 'Parser warnings/errors:\n' +
+                res.errors.slice(0, 5).map(e => e.message + ' @ row ' + e.row).join('\n');
+            }
+            if (!res.data || !res.data.length) {
+              if (status) status.textContent = 'No rows found in CSV.';
+              return;
+            }
+
+            const cols = res.meta?.fields?.map(c => c.trim()) || Object.keys(res.data[0]);
+            state.rows = res.data.map(r => normalizeRow(r));   // uses your existing function
+            state.columns = cols;
+            buildIndexes(state.rows);                          // uses your existing function
+            if (status) status.textContent =
+              `Loaded ${state.rows.length.toLocaleString()} rows • ${state.columns.length} columns (from ZIP)`;
+            applyFilters();                                    // uses your existing function
+          },
+          error: (err) => {
+            console.error(err);
+            if (status) status.textContent = 'Error parsing CSV from ZIP';
+            errors.textContent = String(err);
+          }
+        });
+      } catch (ex) {
+        console.error(ex);
+        if (status) status.textContent = 'Error loading ZIP.';
+        errors.textContent = String(ex && ex.message ? ex.message : ex);
+      }
+    }
+  </script>
 
 </body>
 
