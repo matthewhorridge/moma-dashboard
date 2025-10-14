@@ -8,4 +8,6 @@ You must load some data before you can browse it.  This (currently) does not loa
 
 ## Examples
 
-[Paintings by Jack Whitten](https://matthewhorridge.github.io/moma-dashboard/?load=true&artists=Jack%2520Whitten&classes=Painting&ymin=1900&ymax=2025&page=1&pageSize=50&sortKey=title&sortDir=asc&cols=image_url%2Ctitle%2Cartist_display_name%2Cartist_nationality%2Cdepartment%2Cclassification%2Cmedium%2Cdate_text)
+[Paintings by Jack Whitten](https://matthewhorridge.github.io/moma-dashboard/?load=artists&artists=Jack%2520Whitten&classes=Painting&ymin=1900&ymax=2025&page=1&pageSize=50&sortKey=title&sortDir=asc&cols=image_url%2Ctitle%2Cartist_display_name%2Cartist_nationality%2Cdepartment%2Cclassification%2Cmedium%2Cdate_text)
+
+[Photographs in the last 5 years](https://matthewhorridge.github.io/moma-dashboard/?load=artists&classes=Photograph&ymin=2020&ymax=2025&page=1&pageSize=50&sortKey=title&sortDir=asc&cols=image_url%2Ctitle%2Cartist_display_name%2Cartist_nationality%2Cdepartment%2Cclassification%2Cmedium%2Cdate_text)
