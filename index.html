@@ -1430,6 +1430,14 @@
       applyFilters();       // will render with URL-provided filters
       urlSync.updateURL();  // normalize URL (e.g., fill defaults)
 
+      (function () {
+        const sp = new URLSearchParams(location.search);
+        const loadFlag = (sp.get('load') || '').toLowerCase();
+        if (loadFlag === 'true') {
+          // Relative path next to index.html
+          loadZipFromSameDir();
+        }
+      })();
 
     }
 
