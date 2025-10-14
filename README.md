@@ -2,9 +2,12 @@
 
 This is a browser for the collection of the Museum of Modern Art in New York City (as of October 2025).  To view the dashboard, go [here](https://matthewhorridge.github.io/moma-dashboard).  
 
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/f67137bb-d823-42d1-ad62-8f2212769653" />
+
+
 ## Loading data
 
-You must load some data before you can browse it.  This (currently) does not load automatically.  You can load sample data or you can load a specific [Artworks.csv](https://media.githubusercontent.com/media/MuseumofModernArt/collection/refs/heads/main/Artworks.csv) file from the [MoMA collection GitHub repository](https://github.com/MuseumofModernArt/collection).
+You must load some data before you can browse it. You can load sample data or you can load a specific [Artworks.csv](https://media.githubusercontent.com/media/MuseumofModernArt/collection/refs/heads/main/Artworks.csv) file from the [MoMA collection GitHub repository](https://github.com/MuseumofModernArt/collection).
 
 ## Examples
 
