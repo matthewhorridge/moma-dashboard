@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,139 +13,454 @@
   <style>
     :root {
       --bg: #f5f7fb;
-      --bg-accent: radial-gradient(1200px 600px at 80% -10%, rgba(99,102,241,0.12), transparent 60%),
-                   radial-gradient(800px 400px at -10% 20%, rgba(16,185,129,0.10), transparent 60%);
+      --bg-accent: radial-gradient(1200px 600px at 80% -10%, rgba(99, 102, 241, 0.12), transparent 60%),
+        radial-gradient(800px 400px at -10% 20%, rgba(16, 185, 129, 0.10), transparent 60%);
       --card: #ffffff;
       --muted: #667085;
       --text: #0f172a;
-      --ring: 0 0 0 4px rgba(59,130,246,0.20);
+      --ring: 0 0 0 4px rgba(59, 130, 246, 0.20);
       --border: #e6e8ee;
       --input: #ffffff;
       --input-border: #d7dbe3;
-      --btn: linear-gradient(180deg,#f8faff,#eef2ff);
-      --btn-hover: linear-gradient(180deg,#eef2ff,#e0e7ff);
+      --btn: linear-gradient(180deg, #f8faff, #eef2ff);
+      --btn-hover: linear-gradient(180deg, #eef2ff, #e0e7ff);
       --primary: #3b82f6;
-      --chip-bg:#f1f5ff; --chip-border:#c7d2fe; --chip-text:#1e293b;
-      --shadow-sm: 0 1px 2px rgba(16,24,40,0.05);
-      --shadow-md: 0 8px 24px rgba(2,6,23,0.08);
-      --shadow-lg: 0 20px 40px rgba(2,6,23,0.12);
+      --chip-bg: #f1f5ff;
+      --chip-border: #c7d2fe;
+      --chip-text: #1e293b;
+      --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+      --shadow-md: 0 8px 24px rgba(2, 6, 23, 0.08);
+      --shadow-lg: 0 20px 40px rgba(2, 6, 23, 0.12);
       --thead-bg: #fbfdff;
     }
-    * { box-sizing:border-box; }
+
+    td .thumb-link {
+      display: inline-block;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    td .thumb-link img {
+      display: block;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      margin:0; color:var(--text);
-      background: var(--bg); background-image: var(--bg-accent);
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      background-image: var(--bg-accent);
       font: 14px/1.6 "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
-    header { position: sticky; top:0; z-index:50; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
-    .wrap { max-width: 1240px; margin: 0 auto; padding: 16px 20px; }
-    .brand { display:flex; align-items:center; gap:12px; }
-    .logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(180deg,#3b82f6,#6366f1); box-shadow: var(--shadow-sm); display:grid; place-items:center; color:#fff; font-weight:700; }
-    .title { font-weight:700; font-size:16px; }
-    .subtitle { color:var(--muted); font-size:12px; }
-    .row { display:grid; grid-template-columns: 1fr; gap: 18px; margin-top: 16px; }
-    @media (min-width: 1080px) { .row { grid-template-columns: 340px 1fr; } }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: var(--shadow-md); }
-    .card h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
-    .muted { color: var(--muted); }
-    .input { width:100%; padding: 12px 12px 12px 40px; border-radius: 12px; border:1px solid var(--input-border); background:var(--input); transition: box-shadow .15s ease, border-color .15s ease; }
-    .input:focus { outline:none; border-color: #93c5fd; box-shadow: var(--ring); }
-   /* >>> REPLACE your current .field.with-actions / .field .actions rules with this <<< */
 
-/* Give the input room for the two buttons on the right */
-.field.with-actions .input {
-  padding-right: 120px; /* was ~104px; a little extra avoids wrap on narrow widths */
-}
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
 
-/* Pin the actions inside the field and center them vertically */
-.field { position: relative; }
-.field .actions {
-  position: absolute;
-  right: 8px;
-  top: 0;
-  bottom: 0;               /* stretch container full height of the input */
-  display: flex;
-  align-items: center;     /* perfect vertical centering */
-  gap: 6px;
-}
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 16px 20px;
+    }
 
-/* Make the buttons a consistent size */
-.field .actions .btn {
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;      /* tighter corners so they visually align with the input */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-/* (optional) ensure the search icon never pushes layout */
-.field svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #3b82f6, #6366f1);
+      box-shadow: var(--shadow-sm);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 700;
+    }
 
-    
-    input[type="range"] { width:100%; }
-    .btn { cursor:pointer; background: var(--btn); border:1px solid var(--input-border); color:#0f172a; padding: 10px 14px; border-radius: 12px; font-weight:600; box-shadow: var(--shadow-sm); transition: transform .05s ease, box-shadow .15s ease, background .2s ease; }
-    .btn:hover { background: var(--btn-hover); box-shadow: var(--shadow-md); }
-    .btn:active { transform: translateY(1px); }
-    .btn-primary { background: linear-gradient(180deg, #60a5fa, #3b82f6); border-color: rgba(59,130,246,0.4); color: #fff; }
-    .btn-primary:hover { background: linear-gradient(180deg, #60a5fa, #2563eb); }
-    .pill { display:inline-block; padding: 5px 9px; border-radius: 8px; background: var(--chip-bg); border:1px solid var(--chip-border); color:var(--chip-text); font-size: 12px; line-height: 1.2; }
-    .chips-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
-    .chip { display:inline-flex; align-items:center; gap:6px; background:#eef2ff; border:1px solid #c7d2fe; color:#1e293b; padding:6px 10px; border-radius: 999px; font-size:12px; box-shadow: var(--shadow-sm); }
-    .chip button { all:unset; cursor:pointer; padding:0 4px; opacity:.7; }
-    .chip button:hover { opacity:1; }
+    .title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      margin-top: 16px;
+    }
+
+    @media (min-width: 1080px) {
+      .row {
+        grid-template-columns: 340px 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .input {
+      width: 100%;
+      padding: 12px 12px 12px 40px;
+      border-radius: 12px;
+      border: 1px solid var(--input-border);
+      background: var(--input);
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: #93c5fd;
+      box-shadow: var(--ring);
+    }
+
+    /* >>> REPLACE your current .field.with-actions / .field .actions rules with this <<< */
+
+    /* Give the input room for the two buttons on the right */
+    .field.with-actions .input {
+      padding-right: 120px;
+      /* was ~104px; a little extra avoids wrap on narrow widths */
+    }
+
+    /* Pin the actions inside the field and center them vertically */
+    .field {
+      position: relative;
+    }
+
+    .field .actions {
+      position: absolute;
+      right: 8px;
+      top: 0;
+      bottom: 0;
+      /* stretch container full height of the input */
+      display: flex;
+      align-items: center;
+      /* perfect vertical centering */
+      gap: 6px;
+    }
+
+    /* Make the buttons a consistent size */
+    .field .actions .btn {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 8px;
+      /* tighter corners so they visually align with the input */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* (optional) ensure the search icon never pushes layout */
+    .field svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .btn {
+      cursor: pointer;
+      background: var(--btn);
+      border: 1px solid var(--input-border);
+      color: #0f172a;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+      transition: transform .05s ease, box-shadow .15s ease, background .2s ease;
+    }
+
+    .btn:hover {
+      background: var(--btn-hover);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #60a5fa, #3b82f6);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(180deg, #60a5fa, #2563eb);
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 8px;
+      background: var(--chip-bg);
+      border: 1px solid var(--chip-border);
+      color: var(--chip-text);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #1e293b;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chip button {
+      all: unset;
+      cursor: pointer;
+      padding: 0 4px;
+      opacity: .7;
+    }
+
+    .chip button:hover {
+      opacity: 1;
+    }
 
     /* Table */
-    .table-wrap { overflow:auto; max-height: 560px; border-radius: 12px; }
-    table { width:100%; border-collapse: separate; border-spacing: 0; }
-    thead th, tfoot th { position: sticky; top: 0; z-index: 2; background: var(--thead-bg); }
+    .table-wrap {
+      overflow: auto;
+      max-height: 560px;
+      border-radius: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    thead th,
+    tfoot th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--thead-bg);
+    }
+
     thead th::after {
-      content: ""; position:absolute; left:0; right:0; bottom:-1px; height:1px; background: var(--border);
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 1px;
+      background: var(--border);
     }
-    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { text-align:left; color:#475569; font-weight:700; user-select:none; cursor:pointer; position: relative; }
-    th .sort { margin-left:6px; opacity:.7; }
-    tbody tr:hover { background: #f8fafc; }
-    td img { border-radius: 8px; box-shadow: var(--shadow-sm); }
 
-    canvas { width: 100% !important; height: 340px !important; }
-    .err { color:#b91c1c; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
 
-    .listbox { position:relative; margin-top:8px; background:#fff; border:1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); max-height:260px; overflow:auto; padding:6px 0; }
-    .option { padding:8px 10px; cursor:pointer; }
-    .option:hover { background:#f8fafc; }
-    .option[aria-selected="true"] { background:#eef2ff; }
+    th {
+      text-align: left;
+      color: #475569;
+      font-weight: 700;
+      user-select: none;
+      cursor: pointer;
+      position: relative;
+    }
 
-    .controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .select { padding:8px 10px; border-radius:10px; border:1px solid var(--input-border); background:#fff; }
+    th .sort {
+      margin-left: 6px;
+      opacity: .7;
+    }
 
-    .colpick { position:relative; display:inline-block; }
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    td img {
+      border-radius: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 340px !important;
+    }
+
+    .err {
+      color: #b91c1c;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .listbox {
+      position: relative;
+      margin-top: 8px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      max-height: 260px;
+      overflow: auto;
+      padding: 6px 0;
+    }
+
+    .option {
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+
+    .option:hover {
+      background: #f8fafc;
+    }
+
+    .option[aria-selected="true"] {
+      background: #eef2ff;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .select {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--input-border);
+      background: #fff;
+    }
+
+    .colpick {
+      position: relative;
+      display: inline-block;
+    }
+
     .colpanel {
-      position:absolute; right:0; top:calc(100% + 8px);
-      background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow: var(--shadow-lg);
-      padding:10px; min-width:220px; z-index:10;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      padding: 10px;
+      min-width: 220px;
+      z-index: 10;
     }
-    .colpanel h4 { margin: 0 0 8px; font-size:12px; color:#475569; }
-    .colpanel label { display:flex; align-items:center; gap:8px; padding:6px 4px; border-radius:8px; cursor:pointer; }
-    .colpanel label:hover { background:#f8fafc; }
+
+    .colpanel h4 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .colpanel label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .colpanel label:hover {
+      background: #f8fafc;
+    }
 
     /* noUiSlider theming */
-    .noUi-target { box-shadow: var(--shadow-sm); border:1px solid var(--input-border); border-radius: 10px; background:#fff; }
-    .noUi-connect { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
-    .noUi-horizontal { height: 10px; }
-    .noUi-handle { width: 18px; height: 18px; border-radius: 9px; box-shadow: var(--shadow-sm); border:1px solid #93c5fd; }
-    .noUi-handle::before, .noUi-handle::after { display:none; }
-    .noUi-pips-horizontal { padding-top: 6px; color:#667085; }
-    .noUi-value { font-size: 10px; }
-    .noUi-marker { background:#d0d5dd; }
+    .noUi-target {
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .noUi-connect {
+      background: linear-gradient(90deg, #60a5fa, #3b82f6);
+    }
+
+    .noUi-horizontal {
+      height: 10px;
+    }
+
+    .noUi-handle {
+      width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid #93c5fd;
+    }
+
+    .noUi-handle::before,
+    .noUi-handle::after {
+      display: none;
+    }
+
+    .noUi-pips-horizontal {
+      padding-top: 6px;
+      color: #667085;
+    }
+
+    .noUi-value {
+      font-size: 10px;
+    }
+
+    .noUi-marker {
+      background: #d0d5dd;
+    }
   </style>
 </head>
+
 <body>
   <header>
     <div class="wrap" style="display:flex; align-items:center; justify-content:space-between; gap:14px;">
@@ -165,16 +481,24 @@
           <div>
             <h3>Search</h3>
             <div class="field with-actions">
-              <input id="q" class="input" type="text" placeholder="Title, department, classification, artist, nationality, medium…" />
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input id="q" class="input" type="text"
+                placeholder="Title, department, classification, artist, nationality, medium…" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor"
+                  stroke-width="1.5" stroke-linecap="round" />
+              </svg>
             </div>
           </div>
 
           <div>
             <h3>Artist (multi)</h3>
             <div class="field with-actions">
-              <input id="artistInput" class="input" type="text" placeholder="Type to search artists…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input id="artistInput" class="input" type="text" placeholder="Type to search artists…" autocomplete="off"
+                aria-autocomplete="list" aria-expanded="false" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor"
+                  stroke-width="1.5" stroke-linecap="round" />
+              </svg>
               <div class="actions">
                 <button id="artistClear" class="btn" title="Clear">✕</button>
                 <button id="artistToggle" class="btn" title="Show">▾</button>
@@ -187,8 +511,12 @@
           <div>
             <h3>Classification (multi)</h3>
             <div class="field with-actions">
-              <input id="classInput" class="input" type="text" placeholder="Type to search classification…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input id="classInput" class="input" type="text" placeholder="Type to search classification…"
+                autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor"
+                  stroke-width="1.5" stroke-linecap="round" />
+              </svg>
               <div class="actions">
                 <button id="classClear" class="btn" title="Clear">✕</button>
                 <button id="classToggle" class="btn" title="Show">▾</button>
@@ -201,8 +529,12 @@
           <div>
             <h3>Medium (multi)</h3>
             <div class="field with-actions">
-              <input id="tagsInput" class="input" type="text" placeholder="Type to search medium…" autocomplete="off" aria-autocomplete="list" aria-expanded="false" />
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input id="tagsInput" class="input" type="text" placeholder="Type to search medium…" autocomplete="off"
+                aria-autocomplete="list" aria-expanded="false" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 21l-4.35-4.35m1.1-5.05a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z" stroke="currentColor"
+                  stroke-width="1.5" stroke-linecap="round" />
+              </svg>
               <div class="actions">
                 <button id="tagsClear" class="btn" title="Clear">✕</button>
                 <button id="tagsToggle" class="btn" title="Show">▾</button>
@@ -218,12 +550,15 @@
               <div id="yearSlider" style="padding-left: 30px; padding-right: 30px;"></div>
               <div style="display:flex; gap:8px; align-items:center; padding-top: 10px;">
                 <label class="muted" style="font-size:12px;">From
-                  <input id="yearMinBox" type="number" min="-600" max="2025" class="input" style="width:120px; padding:8px 10px; height:36px;" />
+                  <input id="yearMinBox" type="number" min="-600" max="2025" class="input"
+                    style="width:120px; padding:8px 10px; height:36px;" />
                 </label>
                 <label class="muted" style="font-size:12px;">To
-                  <input id="yearMaxBox" type="number" min="-600" max="2025" class="input" style="width:120px; padding:8px 10px; height:36px;" />
+                  <input id="yearMaxBox" type="number" min="-600" max="2025" class="input"
+                    style="width:120px; padding:8px 10px; height:36px;" />
                 </label>
-                <div class="muted" style="margin-left:auto; font-size:12px; padding-top: 50px;"><span id="yearMinVal">1900</span> → <span id="yearMaxVal">2025</span></div>
+                <div class="muted" style="margin-left:auto; font-size:12px; padding-top: 50px;"><span
+                    id="yearMinVal">1900</span> → <span id="yearMaxVal">2025</span></div>
               </div>
               <div class="chips-row">
                 <button class="btn" data-range="all">All</button>
@@ -254,7 +589,8 @@
               <h3 style="margin:0;">Objects by Department</h3>
               <div class="muted" style="font-size:12px;">Top 15 departments in the filtered set</div>
             </div>
-            <div class="muted" style="font-size:12px;"><span id="count" style="font-weight:700; color:#111827;">0</span> results</div>
+            <div class="muted" style="font-size:12px;"><span id="count" style="font-weight:700; color:#111827;">0</span>
+              results</div>
           </div>
           <div style="margin-top:8px;">
             <canvas id="deptChart"></canvas>
@@ -267,7 +603,10 @@
             <div class="controls">
               <label class="muted" style="font-size:12px;">Rows per page
                 <select id="rowsPerPage" class="select">
-                  <option>25</option><option selected>50</option><option>100</option><option>200</option>
+                  <option>25</option>
+                  <option selected>50</option>
+                  <option>100</option>
+                  <option>200</option>
                 </select>
               </label>
               <div class="colpick">
@@ -282,16 +621,20 @@
 
           <div class="table-wrap">
             <table id="table">
-              <thead><tr id="theadRow"></tr></thead>
+              <thead>
+                <tr id="theadRow"></tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
 
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px;">
-            <div class="muted" style="font-size:12px;">Showing <span id="showingRange">0–0</span> of <span id="totalRows">0</span></div>
+            <div class="muted" style="font-size:12px;">Showing <span id="showingRange">0–0</span> of <span
+                id="totalRows">0</span></div>
             <div style="display:flex; align-items:center; gap:8px;">
               <button id="prevPage" class="btn">◀ Prev</button>
-              <div class="muted" style="font-size:12px;">Page <span id="pageNum">1</span> / <span id="pageCount">1</span></div>
+              <div class="muted" style="font-size:12px;">Page <span id="pageNum">1</span> / <span
+                  id="pageCount">1</span></div>
               <button id="nextPage" class="btn">Next ▶</button>
             </div>
           </div>
@@ -320,15 +663,15 @@
       sortKey: 'title', sortDir: 'asc',
       page: 1, pageSize: 50,
       colDefs: [
-        { key:'image_url',           label:'Image',          visible:true,  type:'img'   },
-        { key:'title',               label:'Title',          visible:true,  type:'text'  },
-        { key:'artist_display_name', label:'Artist(s)',      visible:true,  type:'multi' },
-        { key:'artist_nationality',  label:'Nationality',    visible:true,  type:'multi' },
-        { key:'department',          label:'Department',     visible:true,  type:'multi' },
-        { key:'classification',      label:'Classification', visible:true,  type:'multi' },
-        { key:'medium',              label:'Medium',         visible:true,  type:'multi' },
-        { key:'object_begin_date',   label:'Begin',          visible:true,  type:'num'   },
-        { key:'object_end_date',     label:'End',            visible:true,  type:'num'   }
+        { key: 'image_url', label: 'Image', visible: true, type: 'img' },
+        { key: 'title', label: 'Title', visible: true, type: 'text' },
+        { key: 'artist_display_name', label: 'Artist(s)', visible: true, type: 'multi' },
+        { key: 'artist_nationality', label: 'Nationality', visible: true, type: 'multi' },
+        { key: 'department', label: 'Department', visible: true, type: 'multi' },
+        { key: 'classification', label: 'Classification', visible: true, type: 'multi' },
+        { key: 'medium', label: 'Medium', visible: true, type: 'multi' },
+        { key: 'object_begin_date', label: 'Begin', visible: true, type: 'num' },
+        { key: 'object_end_date', label: 'End', visible: true, type: 'num' }
       ]
     };
     const el = (id) => document.getElementById(id);
@@ -352,14 +695,14 @@
     const colBtn = el('colBtn'), colPanel = el('colPanel'), colChecks = el('colChecks');
 
     // ---------- Events ----------
-    fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent=''; loadCSV(file); });
+    fileInput.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (!file) return; errors.textContent = ''; loadCSV(file); });
     clearBtn.addEventListener('click', () => {
-      q.value='';
+      q.value = '';
       setSelections('artist', []); setSelections('class', []); setSelections('tags', []);
-      state.page = 1; state.sortKey='title'; state.sortDir='asc';
+      state.page = 1; state.sortKey = 'title'; state.sortDir = 'asc';
       if (state.rows.length) applyFilters();
     });
-    q.addEventListener('input', debounce(() => { state.page=1; applyFilters(); }, 150));
+    q.addEventListener('input', debounce(() => { state.page = 1; applyFilters(); }, 150));
 
     rowsPerPage.addEventListener('change', () => { state.pageSize = +rowsPerPage.value; state.page = 1; renderPaged(); });
     prevPage.addEventListener('click', () => { if (state.page > 1) { state.page--; renderPaged(); } });
@@ -386,20 +729,20 @@
     // Typeahead wiring
     function wireTypeahead(kind, inputEl, listEl, toggleBtn, clearBtn) {
       toggleBtn.addEventListener('click', () => { inputEl.focus(); showList(kind, inputEl.value); });
-      clearBtn.addEventListener('click', () => { inputEl.value=''; setSelections(kind, []); hideList(kind); state.page=1; applyFilters(); });
+      clearBtn.addEventListener('click', () => { inputEl.value = ''; setSelections(kind, []); hideList(kind); state.page = 1; applyFilters(); });
       inputEl.addEventListener('input', () => { showList(kind, inputEl.value); });
       inputEl.addEventListener('focus', () => { showList(kind, inputEl.value); });
       inputEl.addEventListener('keydown', (e) => handleListKey(e, kind));
     }
     wireTypeahead('artist', artistInput, artistList, artistToggle, artistClear);
     wireTypeahead('class', classInput, classList, classToggle, classClear);
-    wireTypeahead('tags',  tagsInput,  tagsList,  tagsToggle,  tagsClear);
+    wireTypeahead('tags', tagsInput, tagsList, tagsToggle, tagsClear);
 
     document.addEventListener('click', (e) => {
       const inside = (elem) => elem && (elem.contains(e.target) || e.target === elem);
       if (!inside(artistList) && !inside(artistInput) && e.target !== artistToggle) hideList('artist');
-      if (!inside(classList)  && !inside(classInput)  && e.target !== classToggle)  hideList('class');
-      if (!inside(tagsList)   && !inside(tagsInput)   && e.target !== tagsToggle)   hideList('tags');
+      if (!inside(classList) && !inside(classInput) && e.target !== classToggle) hideList('class');
+      if (!inside(tagsList) && !inside(tagsInput) && e.target !== tagsToggle) hideList('tags');
     });
 
     function handleListKey(e, kind) {
@@ -412,7 +755,7 @@
       else if (e.key === 'Enter') {
         e.preventDefault();
         const value = cur >= 0 ? opts[cur].dataset.value : inputEl.value.trim();
-        if (value) { addSelection(kind, value); inputEl.value=''; showList(kind, ''); state.page=1; applyFilters(); }
+        if (value) { addSelection(kind, value); inputEl.value = ''; showList(kind, ''); state.page = 1; applyFilters(); }
       } else if (e.key === 'Escape') { hideList(kind); }
     }
 
@@ -430,12 +773,12 @@
       const listEl = kind === 'artist' ? artistList : kind === 'class' ? classList : tagsList;
       const inputEl = kind === 'artist' ? artistInput : kind === 'class' ? classInput : tagsInput;
       const items = idx.filter(a => !ql || a.toLowerCase().includes(ql)).slice(0, 60);
-      listEl.innerHTML = items.map((a, i) => `<div class="option" role="option" aria-selected="${i===0?'true':'false'}" data-value="${escapeHTML(a)}">${escapeHTML(a)}</div>`).join('');
+      listEl.innerHTML = items.map((a, i) => `<div class="option" role="option" aria-selected="${i === 0 ? 'true' : 'false'}" data-value="${escapeHTML(a)}">${escapeHTML(a)}</div>`).join('');
       listEl.hidden = items.length === 0;
       inputEl.setAttribute('aria-expanded', String(!listEl.hidden));
       [...listEl.querySelectorAll('.option')].forEach(opt => {
-        opt.addEventListener('mouseenter', () => { [...listEl.querySelectorAll('.option')].forEach(o=>o.setAttribute('aria-selected','false')); opt.setAttribute('aria-selected','true'); });
-        opt.addEventListener('click', () => { addSelection(kind, opt.dataset.value); showList(kind, ''); state.page=1; applyFilters(); });
+        opt.addEventListener('mouseenter', () => { [...listEl.querySelectorAll('.option')].forEach(o => o.setAttribute('aria-selected', 'false')); opt.setAttribute('aria-selected', 'true'); });
+        opt.addEventListener('click', () => { addSelection(kind, opt.dataset.value); showList(kind, ''); state.page = 1; applyFilters(); });
       });
     }
     function hideList(kind) {
@@ -447,30 +790,30 @@
     function setSelections(kind, arr) {
       const uniq = Array.from(new Set(arr.map(x => String(x).trim()).filter(Boolean)));
       if (kind === 'artist') state.artistSel = uniq;
-      if (kind === 'class')  state.classSel  = uniq;
-      if (kind === 'tags')   state.tagSel    = uniq;
+      if (kind === 'class') state.classSel = uniq;
+      if (kind === 'tags') state.tagSel = uniq;
       renderChips(kind);
     }
     function addSelection(kind, value) {
       const v = String(value).trim(); if (!v) return;
       if (kind === 'artist') setSelections('artist', [...state.artistSel, v]);
-      if (kind === 'class')  setSelections('class',  [...state.classSel,  v]);
-      if (kind === 'tags')   setSelections('tags',   [...state.tagSel,    v]);
+      if (kind === 'class') setSelections('class', [...state.classSel, v]);
+      if (kind === 'tags') setSelections('tags', [...state.tagSel, v]);
     }
     function removeSelection(kind, value) {
       if (kind === 'artist') setSelections('artist', state.artistSel.filter(x => x !== value));
-      if (kind === 'class')  setSelections('class',  state.classSel.filter(x => x !== value));
-      if (kind === 'tags')   setSelections('tags',   state.tagSel.filter(x => x !== value));
-      state.page=1; applyFilters();
+      if (kind === 'class') setSelections('class', state.classSel.filter(x => x !== value));
+      if (kind === 'tags') setSelections('tags', state.tagSel.filter(x => x !== value));
+      state.page = 1; applyFilters();
     }
 
     function renderChips(kind) {
       const host = (kind === 'artist') ? document.getElementById('artistChips')
-                : (kind === 'class')  ? document.getElementById('classChips')
-                :                       document.getElementById('tagsChips');
+        : (kind === 'class') ? document.getElementById('classChips')
+          : document.getElementById('tagsChips');
       const list = (kind === 'artist') ? (state.artistSel || [])
-                : (kind === 'class')  ? (state.classSel || [])
-                :                       (state.tagSel || []);
+        : (kind === 'class') ? (state.classSel || [])
+          : (state.tagSel || []);
       if (!host) return;
       host.innerHTML = '';
       host.style.display = list.length ? 'flex' : 'none';
@@ -490,7 +833,7 @@
           header: true, dynamicTyping: true, skipEmptyLines: true,
           transformHeader: (h) => (h || '').toString().trim(),
           complete: (res) => {
-            if (res.errors && res.errors.length) errors.textContent = 'Parser warnings/errors:\\n' + res.errors.slice(0,5).map(e => e.message + ' @ row ' + e.row).join('\\n');
+            if (res.errors && res.errors.length) errors.textContent = 'Parser warnings/errors:\\n' + res.errors.slice(0, 5).map(e => e.message + ' @ row ' + e.row).join('\\n');
             if (!res.data || !res.data.length) { status.textContent = 'No rows found.'; return; }
             const cols = res.meta && res.meta.fields ? res.meta.fields.map(c => c.trim()) : Object.keys(res.data[0]);
             state.rows = res.data.map(r => normalizeRow(r));
@@ -504,9 +847,9 @@
       } catch (ex) { status.textContent = 'Error parsing CSV'; errors.textContent = String(ex && ex.stack || ex); }
     }
 
-    function normalizeRow(r){
+    function normalizeRow(r) {
       // Map MoMA Artworks.csv headers to internal keys used by the app
-      const get = (k)=> (r[k]===undefined||r[k]===null)?'':String(r[k]);
+      const get = (k) => (r[k] === undefined || r[k] === null) ? '' : String(r[k]);
       return {
         title: get('Title'),
         artist_display_name: get('Artist'),
@@ -547,12 +890,12 @@
       const query = (q.value || '').toLowerCase().trim();
       const filtered = [];
       for (const r of state.rows) {
-        const t = (r.title||'').toLowerCase();
-        const d = (r.department||'').toLowerCase();
-        const cl = (r.classification||'').toLowerCase();
-        const a = (r.artist_display_name||'').toLowerCase();
-        const n = (r.artist_nationality||'').toLowerCase();
-        const m = (r.medium||'').toLowerCase();
+        const t = (r.title || '').toLowerCase();
+        const d = (r.department || '').toLowerCase();
+        const cl = (r.classification || '').toLowerCase();
+        const a = (r.artist_display_name || '').toLowerCase();
+        const n = (r.artist_nationality || '').toLowerCase();
+        const m = (r.medium || '').toLowerCase();
         const fields = [t, d, cl, a, n, m].join(' | ');
         if (query && !fields.includes(query)) continue;
 
@@ -582,11 +925,11 @@
     }
 
     function sortRows(rows, key, dir) {
-      const def = state.colDefs.find(c => c.key === key) || { type:'text' };
+      const def = state.colDefs.find(c => c.key === key) || { type: 'text' };
       const multival = (v) => splitMulti(val(v))[0] || ''; // first value if multi
-      const cmp = (a,b) => {
+      const cmp = (a, b) => {
         let va = a[key], vb = b[key];
-        if (def.type === 'num') { va = Number(va); vb = Number(vb); va = Number.isFinite(va)?va:NaN; vb = Number.isFinite(vb)?vb:NaN; }
+        if (def.type === 'num') { va = Number(va); vb = Number(vb); va = Number.isFinite(va) ? va : NaN; vb = Number.isFinite(vb) ? vb : NaN; }
         else { va = multival(va).toLowerCase(); vb = multival(vb).toLowerCase(); }
         if (va === vb || (Number.isNaN(va) && Number.isNaN(vb))) return 0;
         if (Number.isNaN(va)) return 1;
@@ -630,7 +973,7 @@
       document.getElementById('pageCount').textContent = pc;
       const start = (state.page - 1) * state.pageSize;
       const end = Math.min(state.filtered.length, start + state.pageSize);
-      document.getElementById('showingRange').textContent = (state.filtered.length ? (start+1) : 0) + '–' + end;
+      document.getElementById('showingRange').textContent = (state.filtered.length ? (start + 1) : 0) + '–' + end;
       const pageRows = state.filtered.slice(start, end);
       renderTable(pageRows);
     }
@@ -646,12 +989,26 @@
           if (c.type === 'img') {
             if (r.image_url) {
               const img = document.createElement('img');
-              img.src = r.image_url; img.alt = '';
-              img.style.width='64px'; img.style.height='64px'; img.style.objectFit='cover'; img.loading='lazy';
-              td.appendChild(img);
+              img.src = r.image_url;
+              img.alt = r.title || '';
+              img.style.width = '64px';
+              img.style.height = '64px';
+              img.style.objectFit = 'cover';
+              img.loading = 'lazy';
+
+              // Link to the object page if present, otherwise to the raw image
+              const a = document.createElement('a');
+              a.href = r.object_url || r.image_url;
+              a.target = '_blank';
+              a.rel = 'noopener noreferrer';
+              a.className = 'thumb-link';
+              a.title = 'Open artwork page';
+
+              a.appendChild(img);
+              td.appendChild(a);
             }
           } else if (c.type === 'multi') {
-            const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.gap='6px';
+            const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '6px';
             const vals = splitMulti(val(r[c.key]));
             for (const s0 of vals) {
               const s = s0.trim(); if (!s) continue;
@@ -661,7 +1018,7 @@
             td.appendChild(wrap);
           } else {
             const v = c.type === 'num' ? num(r[c.key]) : val(r[c.key]);
-            td.textContent = (v==null || (Number.isNaN(v) && c.type==='num')) ? '' : String(v);
+            td.textContent = (v == null || (Number.isNaN(v) && c.type === 'num')) ? '' : String(v);
           }
           tr.appendChild(td);
         }
@@ -673,15 +1030,15 @@
       const ctx = document.getElementById('deptChart').getContext('2d');
       const counts = new Map();
       for (const r of rows) { const d = firstValue(splitMulti(r.classification)); counts.set(d, (counts.get(d) || 0) + 1); }
-      const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a,b)=>b[1]-a[1]).slice(0,15);
-      const labels = sorted.map(x=>x[0]); const data = sorted.map(x=>x[1]);
+      const sorted = Array.from(counts.entries()).filter(([k]) => k).sort((a, b) => b[1] - a[1]).slice(0, 15);
+      const labels = sorted.map(x => x[0]); const data = sorted.map(x => x[1]);
       const palette = [
-        'rgba(59,130,246,0.75)','rgba(99,102,241,0.75)','rgba(6,182,212,0.75)','rgba(249,115,22,0.75)',
-        'rgba(34,197,94,0.75)','rgba(244,63,94,0.75)','rgba(234,179,8,0.75)','rgba(2,132,199,0.75)',
-        'rgba(16,185,129,0.75)','rgba(20,184,166,0.75)','rgba(245,158,11,0.75)','rgba(168,85,247,0.75)',
-        'rgba(236,72,153,0.75)','rgba(59,130,246,0.55)','rgba(99,102,241,0.55)'
+        'rgba(59,130,246,0.75)', 'rgba(99,102,241,0.75)', 'rgba(6,182,212,0.75)', 'rgba(249,115,22,0.75)',
+        'rgba(34,197,94,0.75)', 'rgba(244,63,94,0.75)', 'rgba(234,179,8,0.75)', 'rgba(2,132,199,0.75)',
+        'rgba(16,185,129,0.75)', 'rgba(20,184,166,0.75)', 'rgba(245,158,11,0.75)', 'rgba(168,85,247,0.75)',
+        'rgba(236,72,153,0.75)', 'rgba(59,130,246,0.55)', 'rgba(99,102,241,0.55)'
       ];
-      const borders = palette.map(c => c.replace('0.75','1').replace('0.55','0.9'));
+      const borders = palette.map(c => c.replace('0.75', '1').replace('0.55', '0.9'));
       if (window._deptChart) window._deptChart.destroy();
       window._deptChart = new Chart(ctx, {
         type: 'bar',
@@ -689,12 +1046,12 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           scales: {
-            x: { ticks: { color: '#475569' }, grid: { display:false } },
+            x: { ticks: { color: '#475569' }, grid: { display: false } },
             y: { ticks: { color: '#475569' }, grid: { color: 'rgba(148,163,184,0.2)' } }
           },
           plugins: {
             legend: { labels: { color: '#0f172a' } },
-            tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', titleColor:'#fff', bodyColor:'#e2e8f0', borderColor:'#1f2937', borderWidth:1 }
+            tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', titleColor: '#fff', bodyColor: '#e2e8f0', borderColor: '#1f2937', borderWidth: 1 }
           }
         }
       });
@@ -710,8 +1067,8 @@
     function splitArtists(s) { return splitMulti(s); }
     function splitMultiMOMA(s) { return splitMulti(s); }
     function firstValue(arr) { return (arr && arr.length) ? arr[0] : ''; }
-    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
-    function escapeHTML(s) { return String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
+    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+    function escapeHTML(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 
     function toCSV(rows, cols) { if (!cols || !cols.length) cols = Object.keys(rows[0] || {}); const header = cols.join(','); const lines = [header]; for (const r of rows) { const line = cols.map(k => csvEscape(r[k])); lines.push(line.join(',')); } return lines.join('\\n'); }
     function csvEscape(v) { if (v === null || v === undefined) return ''; const s = String(v); if (/[",\\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'; return s; }
@@ -743,8 +1100,8 @@
         connect: true,
         step: 1,
         range: { min: 1900, max: 2025 },
-        tooltips: [ { to: yearLabel, from: Number }, { to: yearLabel, from: Number } ],
-        pips: { mode: 'positions', values: [0, 20, 40, 60, 80, 100], density: 3, format: { to: (v)=>Math.round(v), from: Number } }
+        tooltips: [{ to: yearLabel, from: Number }, { to: yearLabel, from: Number }],
+        pips: { mode: 'positions', values: [0, 20, 40, 60, 80, 100], density: 3, format: { to: (v) => Math.round(v), from: Number } }
       });
 
       const hiddenMin = document.getElementById('yearMin');
@@ -766,13 +1123,13 @@
 
       function setFromBoxes() {
         const a = clamp(yearMinBox.value), b = clamp(yearMaxBox.value);
-        const lo = Math.min(a,b), hi = Math.max(a,b);
+        const lo = Math.min(a, b), hi = Math.max(a, b);
         yearSlider.noUiSlider.set([lo, hi]);
         state.page = 1; applyFilters();
       }
-      ['change','blur','keydown'].forEach(evt => {
-        yearMinBox.addEventListener(evt, (e)=>{ if (evt!=='keydown' || e.key==='Enter') setFromBoxes(); });
-        yearMaxBox.addEventListener(evt, (e)=>{ if (evt!=='keydown' || e.key==='Enter') setFromBoxes(); });
+      ['change', 'blur', 'keydown'].forEach(evt => {
+        yearMinBox.addEventListener(evt, (e) => { if (evt !== 'keydown' || e.key === 'Enter') setFromBoxes(); });
+        yearMaxBox.addEventListener(evt, (e) => { if (evt !== 'keydown' || e.key === 'Enter') setFromBoxes(); });
       });
 
       document.querySelectorAll('[data-range]').forEach(btn => {
@@ -780,7 +1137,7 @@
           const val = btn.getAttribute('data-range');
           if (val === 'all') { yearSlider.noUiSlider.set([1900, 2025]); }
           else {
-            const [a,b] = val.split(',').map(Number);
+            const [a, b] = val.split(',').map(Number);
             yearSlider.noUiSlider.set([clamp(a), clamp(b)]);
           }
           state.page = 1; applyFilters();
@@ -789,24 +1146,25 @@
     }
   </script>
   <script>
-/* ---- ensure buildIndexes exists before loadCSV calls it ---- */
-function buildIndexes(rows){
-  // local splitter so we don't depend on other helpers being declared yet
-  const splitMultiLocal = (v) =>
-    v == null ? [] : String(v).split(/[|;,]/).map(s => s.trim()).filter(Boolean);
+    /* ---- ensure buildIndexes exists before loadCSV calls it ---- */
+    function buildIndexes(rows) {
+      // local splitter so we don't depend on other helpers being declared yet
+      const splitMultiLocal = (v) =>
+        v == null ? [] : String(v).split(/[|;,]/).map(s => s.trim()).filter(Boolean);
 
-  const aSet = new Set(), cSet = new Set(), tSet = new Set();
+      const aSet = new Set(), cSet = new Set(), tSet = new Set();
 
-  for (const r of rows) {
-    splitMultiLocal(r.artist_display_name).forEach(s => s && aSet.add(s));
-    splitMultiLocal(r.classification).forEach(s => s && cSet.add(s));
-    splitMultiLocal(r.medium).forEach(s => s && tSet.add(s));
-  }
+      for (const r of rows) {
+        splitMultiLocal(r.artist_display_name).forEach(s => s && aSet.add(s));
+        splitMultiLocal(r.classification).forEach(s => s && cSet.add(s));
+        splitMultiLocal(r.medium).forEach(s => s && tSet.add(s));
+      }
 
-  state.artistIndex = Array.from(aSet).sort((a,b)=>a.localeCompare(b));
-  state.classIndex  = Array.from(cSet).sort((a,b)=>a.localeCompare(b));
-  state.tagIndex    = Array.from(tSet).sort((a,b)=>a.localeCompare(b));
-}
-</script>
+      state.artistIndex = Array.from(aSet).sort((a, b) => a.localeCompare(b));
+      state.classIndex = Array.from(cSet).sort((a, b) => a.localeCompare(b));
+      state.tagIndex = Array.from(tSet).sort((a, b) => a.localeCompare(b));
+    }
+  </script>
 </body>
+
 </html>
