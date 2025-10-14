@@ -296,9 +296,18 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js">
+
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js">
+
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.js">
+
+
+</script>
 
   <script>
     Chart.defaults.font.family = "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
@@ -306,6 +315,10 @@
     Chart.defaults.plugins.legend.labels.boxWidth = 14;
 
     const state = {
+  selectedArtists: [],
+  selectedClasses: [],
+  selectedCultures: [],
+  selectedTags: [],
       rows: [], filtered: [], columns: [],
       artistIndex: [], classIndex: [], tagIndex: [],
       artistSel: [], classSel: [], tagSel: [],
@@ -463,22 +476,75 @@
       state.page=1; applyFilters();
     }
 
-    function renderChips(kind) {
-      const list = kind === 'artist' ? state.artistSel : kind === 'class' ? state.classSel : state.tagSel;
-      const host = kind === 'artist' ? artistChips : kind === 'class' ? classChips : tagsChips;
-      host.innerHTML = '';
-      if (!list.length) { host.style.display = 'none'; return; }
-      host.style.display = 'flex';
-      for (const v of list) {
-        const span = document.createElement('span');
-        span.className = 'chip';
-        span.innerHTML = `${escapeHTML(v)} <button title="Remove" aria-label="Remove">✕</button>`;
-        span.querySelector('button').addEventListener('click', () => removeSelection(kind, v));
-        host.appendChild(span);
-      }
-    }
-
-    function buildIndexes(rows) {
+          
+function renderChips(kind) {
+  const host = (kind === 'artist') ? document.getElementById('artistChips')
+            : (kind === 'class')  ? document.getElementById('classChips')
+            :                       document.getElementById('tagsChips');
+  const list = (kind === 'artist') ? (state.artistSel || [])
+            : (kind === 'class')  ? (state.classSel || [])
+            :                       (state.tagSel || []);
+  if (!host) return;
+  host.innerHTML = '';
+  host.style.display = list.length ? 'flex' : 'none';
+  for (const v of list) {
+    const span = document.createElement('span');
+    span.className = 'chip';
+    span.innerHTML = `${escapeHTML(v)} <button title="Remove" aria-label="Remove">✕</button>`;
+    span.querySelector('button').addEventListener('click', () => removeSelection(kind, v));
+    host.appendChild(span);
+  }
+}
+function ownerIdToKey(id){
+  id = String(id||'').toLowerCase();
+  if (id.includes('artist')) return 'selectedArtists';
+  if (id.includes('class')) return 'selectedClasses';
+  if (id.includes('culture')) return 'selectedCultures';
+  if (id.includes('tag')) return 'selectedTags';
+  return '';
+}
+function addChip(arrName, value) {
+  const arr = state[arrName] || (state[arrName] = []);
+  if (!arr.includes(value)) arr.push(value);
+  state.page = 1;
+  renderChips();
+  applyFilters();
+}
+function removeChip(arrName, value) {
+  const arr = state[arrName] || [];
+  const idx = arr.indexOf(value);
+  if (idx !== -1) arr.splice(idx,1);
+  state.page = 1;
+  renderChips();
+  applyFilters();
+}
+function pillHTML(text){ return '<span class="pill">'+ escapeHTML(text) +'<button class="pill-x" title="Remove" data-x="'+escapeHTML(text)+'">×</button></span>'; }
+function renderChips(){
+  const a = document.getElementById('artistChips');
+  const c = document.getElementById('classChips');
+  const n = document.getElementById('cultureChips');
+  const t = document.getElementById('tagsChips');
+  if (a) a.innerHTML = (state.selectedArtists||[]).map(pillHTML).join('');
+  if (c) c.innerHTML = (state.selectedClasses||[]).map(pillHTML).join('');
+  if (n) n.innerHTML = (state.selectedCultures||[]).map(pillHTML).join('');
+  if (t) t.innerHTML = (state.selectedTags||[]).map(pillHTML).join('');
+  document.querySelectorAll('.pill-x').forEach(btn=>{
+    const text = btn.getAttribute('data-x');
+    btn.onclick = (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      ['selectedArtists','selectedClasses','selectedCultures','selectedTags'].forEach(k=>{
+        const arr = state[k]||[];
+        const i = arr.indexOf(text);
+        if(i!==-1) arr.splice(i,1);
+      });
+      state.page = 1;
+      renderChips();
+      applyFilters();
+    };
+  });
+}
+function buildIndexes(rows) {
       const aSet = new Set(), cSet = new Set(), tSet = new Set();
       for (const r of rows) {
         splitMulti(r.artist_display_name).forEach(s => { if (s) aSet.add(s); });
@@ -787,7 +853,10 @@ function normalizeRow(r){
     // Helpers
     function num(v) { const n = Number(v); return Number.isFinite(n) ? n : NaN; }
     function val(v) { return (v === null || v === undefined) ? '' : String(v); }
-    function splitMulti(value) { if (value == null) return []; const s = String(value); return s.includes('|') ? s.split('|').map(x => x.trim()) : [s.trim()]; }
+    function splitMulti(value) {
+  if (value == null) return [];
+  return String(value).split(/[|;,]/).map(x => x.trim()).filter(Boolean);
+}
     function firstValue(arr) { return (arr && arr.length) ? arr[0] : ''; }
     function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
     function escapeHTML(s) { return String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
@@ -808,7 +877,10 @@ function normalizeRow(r){
     renderColumnPicker();
     renderTableHeader();
 
-    // initial ticks
+    
+function pillHTML(text){ return '<span class="pill">'+ escapeHTML(text) +'<button class="pill-x" title="Remove" data-x="'+escapeHTML(text)+'">×</button></span>'; }
+
+// initial ticks
     drawTicks();
 
     // --- Year slider (noUiSlider) ---
@@ -877,6 +949,52 @@ function normalizeRow(r){
     // Disable legacy tick drawing (no longer used)
     function drawTicks() {}
     
-  </script>
+  
+// Add click handler for suggestions to add chips
+document.addEventListener('click', (e)=>{
+  const el = e.target.closest('.suggestion');
+  if(!el) return;
+  const val = el.getAttribute('data-value') || el.textContent.trim();
+  const owner = el.closest('.ta')?.getAttribute('data-owner') || '';
+  if(owner.includes('artist')) addChip('selectedArtists', val);
+  else if(owner.includes('class')) addChip('selectedClasses', val);
+  else if(owner.includes('culture')) addChip('selectedCultures', val);
+  else if(owner.includes('tags')) addChip('selectedTags', val);
+});
+
+
+// Add chips when clicking a suggestion item (robust to structure)
+document.addEventListener('click', (e)=>{
+  const sug = e.target.closest('.suggestion');
+  if(!sug) return;
+  const val = sug.getAttribute('data-value') || sug.textContent.trim();
+  // Find the nearest input that owns this suggestion list
+  let ta = sug.closest('.typeahead, .ta, .ta-wrap, .field');
+  let input = ta ? ta.querySelector('input[type="text"], input.ta-input, input') : null;
+  if (!input) {
+    // fallback: use focused element
+    input = document.activeElement && document.activeElement.tagName==='INPUT' ? document.activeElement : null;
+  }
+  const key = ownerIdToKey(input ? input.id : '');
+  if (key) {
+    addChip(key, val);
+    if (input) input.value = '';
+  }
+});
+// Add chips when pressing Enter in a typeahead input
+['artistInput','classInput','cultureInput','tagsInput'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter') {
+      const v = el.value.trim();
+      if (v) addChip(ownerIdToKey(id), v);
+      el.value = '';
+      e.preventDefault();
+    }
+  });
+});
+
+</script>
 </body>
 </html>
